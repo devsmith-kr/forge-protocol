@@ -1,0 +1,38 @@
+{
+  "app": {
+    "brand": "Forge Protocol",
+    "tag": "Studio",
+    "reset": "처음부터 다시 시작",
+    "guide": "사용 가이드",
+    "stats": {
+      "blocks": "{count} blocks",
+      "days": "{count} days"
+    }
+  },
+  "phases": {
+    "meta-smelt": "Meta-Smelt",
+    "smelt": "Smelt",
+    "shape": "Shape",
+    "build": "Build",
+    "temper": "Temper",
+    "inspect": "Inspect"
+  },
+  "common": {
+    "next": "다음",
+    "prev": "이전",
+    "cancel": "취소",
+    "confirm": "확인",
+    "retry": "다시 시도",
+    "download": "다운로드",
+    "loading": "생성 중…",
+    "empty": "블럭을 먼저 선택해주세요"
+  },
+  "errors": {
+    "storage.quota-exceeded": "브라우저 저장 공간이 부족합니다. 일부 데이터는 저장되지 않을 수 있습니다.",
+    "storage.corrupt": "저장된 세션이 손상되어 초기화되었습니다.",
+    "storage.write-failed": "세션 저장에 실패했습니다.",
+    "storage.read-failed": "세션 읽기에 실패했습니다 (브라우저 프라이빗 모드일 수 있음).",
+    "boundary.title": "문제가 발생했습니다",
+    "boundary.retry": "다시 시도"
+  }
+}

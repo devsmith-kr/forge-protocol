@@ -1,0 +1,12 @@
+.github/
+.claudeignore
+CLAUDE.md
+lib/CLAUDE.md
+docs/
+web/
+.git/
+*.log
+.DS_Store
+.forge/
+node_modules/
+templates/reservation/

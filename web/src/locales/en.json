@@ -1,0 +1,38 @@
+{
+  "app": {
+    "brand": "Forge Protocol",
+    "tag": "Studio",
+    "reset": "Reset to start",
+    "guide": "User guide",
+    "stats": {
+      "blocks": "{count} blocks",
+      "days": "{count} days"
+    }
+  },
+  "phases": {
+    "meta-smelt": "Meta-Smelt",
+    "smelt": "Smelt",
+    "shape": "Shape",
+    "build": "Build",
+    "temper": "Temper",
+    "inspect": "Inspect"
+  },
+  "common": {
+    "next": "Next",
+    "prev": "Prev",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "retry": "Retry",
+    "download": "Download",
+    "loading": "Generating…",
+    "empty": "Please select blocks first"
+  },
+  "errors": {
+    "storage.quota-exceeded": "Browser storage is full. Some data may not be saved.",
+    "storage.corrupt": "Stored session was corrupted and has been reset.",
+    "storage.write-failed": "Failed to save the session.",
+    "storage.read-failed": "Failed to read the session (may be private mode).",
+    "boundary.title": "Something went wrong",
+    "boundary.retry": "Retry"
+  }
+}

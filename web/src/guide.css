@@ -1,0 +1,474 @@
+/* ═══════════════════════════════════════════════════════
+   GUIDE PANEL — 사용 가이드 슬라이드 패널
+═══════════════════════════════════════════════════════ */
+
+/* ── 헤더 버튼 ────────────────────────────────────────── */
+.guide-toggle-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-muted);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--t-fast);
+  margin-left: 10px;
+  font-family: 'Georgia', serif;
+  flex-shrink: 0;
+}
+
+.guide-toggle-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+.guide-toggle-btn.active {
+  background: var(--orange-glow-sm);
+  border-color: rgba(249,115,22,0.4);
+  color: var(--orange-500);
+}
+
+/* ── Reset 버튼 ───────────────────────────────────────── */
+.reset-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-muted);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--t-fast);
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+.reset-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+/* ── Backdrop ─────────────────────────────────────────── */
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 150;
+}
+
+/* ── Panel ────────────────────────────────────────────── */
+.guide-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  z-index: 160;
+  overflow: hidden;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Panel header */
+.guide-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  background: rgba(249,115,22,0.03);
+}
+
+.guide-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.guide-panel-icon { font-size: 16px; }
+
+.guide-close-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border-muted);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--t-fast);
+}
+.guide-close-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.08);
+}
+
+/* Section nav */
+.guide-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.guide-nav-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--t-fast);
+}
+.guide-nav-btn:hover { color: var(--text-secondary); background: var(--bg-elevated); }
+.guide-nav-btn.active {
+  background: var(--orange-glow-sm);
+  color: var(--orange-400);
+  border-color: rgba(249,115,22,0.2);
+}
+
+.gnb-icon { font-size: 12px; }
+.gnb-label { font-size: 11.5px; }
+
+/* 현재 phase 표시 점 */
+.gnb-current {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--orange-500);
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+/* Panel body */
+.guide-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 18px 24px;
+}
+
+/* Section header */
+.guide-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 16px;
+}
+
+.guide-section-icon { font-size: 18px; }
+.guide-section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); flex: 1; }
+
+.guide-current-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--orange-500);
+  background: var(--orange-glow-sm);
+  border: 1px solid rgba(249,115,22,0.25);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+/* ── 콘텐츠 내부 요소 ─────────────────────────────────── */
+.guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.guide-lead {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.02);
+  border-radius: var(--r-sm);
+  border-left: 2px solid var(--orange-500);
+}
+
+.guide-subtitle {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.guide-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 2px 0;
+}
+
+/* Step */
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.guide-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--orange-glow-sm);
+  border: 1px solid rgba(249,115,22,0.3);
+  color: var(--orange-500);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.guide-step-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* Indent (step 하위 내용) */
+.guide-indent {
+  padding-left: 30px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Tip / Warn */
+.guide-tip, .guide-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11.5px;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+}
+
+.guide-tip {
+  background: rgba(99,102,241,0.07);
+  border: 1px solid rgba(99,102,241,0.15);
+  color: #a5b4fc;
+}
+
+.guide-warn {
+  background: rgba(245,158,11,0.07);
+  border: 1px solid rgba(245,158,11,0.15);
+  color: var(--amber-400);
+}
+
+/* Code snippet */
+.guide-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--orange-400);
+  background: rgba(249,115,22,0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(249,115,22,0.15);
+}
+
+/* Terminal block */
+.guide-terminal {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: #0a0a0f;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  line-height: 1.8;
+  color: #c5c8c6;
+}
+
+.term-prompt { color: var(--emerald-500); font-weight: 700; margin-right: 6px; }
+.term-dim    { color: var(--text-muted); }
+
+/* Option rows */
+.guide-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Example box */
+.guide-example-box {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  line-height: 1.7;
+  font-style: italic;
+}
+
+/* Rows (label-value 쌍) */
+.guide-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guide-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
+}
+.guide-row:hover { background: rgba(255,255,255,0.02); }
+.guide-row > span:first-child { min-width: 90px; color: var(--text-secondary); font-weight: 500; }
+.guide-row > span:last-child  { color: var(--text-muted); flex: 1; }
+
+.guide-row-v {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+}
+.guide-row-v strong { font-size: 12.5px; color: var(--text-primary); }
+.guide-row-v span   { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+
+/* Badge (inline) */
+.guide-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Principles */
+.guide-principles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guide-principle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+/* Flow diagram */
+.guide-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.guide-flow-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.guide-flow-phase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  width: 100%;
+  transition: background var(--t-fast);
+}
+.guide-flow-phase:hover { background: var(--bg-elevated); }
+
+.gf-icon  { font-size: 18px; flex-shrink: 0; }
+.gf-label { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.gf-ko    { font-size: 11px;  color: var(--text-muted); margin-top: 1px; }
+
+.gf-arrow {
+  font-size: 14px;
+  color: var(--text-muted);
+  padding-left: 22px;
+  margin: -2px 0;
+  opacity: 0.5;
+}
+
+/* GWT guide */
+.gwt-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gwt-guide-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+}
+
+.gwt-guide-row span:first-child {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  min-width: 46px;
+  text-align: center;
+}
+
+.gwt-guide-row span:last-child { color: var(--text-muted); }
+
+.gwt-guide-row.given span:first-child { color: #818cf8; background: rgba(99,102,241,0.12); }
+.gwt-guide-row.when  span:first-child { color: #f59e0b; background: rgba(245,158,11,0.12); }
+.gwt-guide-row.then  span:first-child { color: #10b981; background: rgba(16,185,129,0.12); }

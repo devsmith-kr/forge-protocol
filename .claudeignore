@@ -1,0 +1,23 @@
+# 의존성
+node_modules/
+web/node_modules/
+
+# 생성된 파일
+.forge/generated/
+
+# IDE
+.idea/
+.vscode/
+
+# 로그 & 임시파일
+*.log
+*.tmp
+.DS_Store
+
+# 패키지 잠금파일 (크고 자주 변경됨)
+package-lock.json
+web/package-lock.json
+
+ookhee-shop
+my-shop
+my-game

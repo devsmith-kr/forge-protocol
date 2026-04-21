@@ -1,0 +1,56 @@
+name: Template Request
+description: Request a new domain template for Forge Protocol
+title: "[Template]: "
+labels: ["template-request"]
+body:
+  - type: textarea
+    id: domain
+    attributes:
+      label: Domain
+      description: What domain is this template for?
+      placeholder: "e.g., Healthcare, Education, Logistics, SaaS, FinTech..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: blocks
+    attributes:
+      label: Expected Blocks
+      description: List the main building blocks you'd expect in this domain.
+      placeholder: |
+        - User management
+        - Appointment scheduling
+        - Patient records
+        - Billing / Insurance
+        - Notifications
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflows
+    attributes:
+      label: Key Workflows
+      description: Describe the main user workflows in this domain.
+      placeholder: |
+        1. Patient registers and books appointment
+        2. Doctor reviews patient history
+        3. Prescription is issued and sent to pharmacy
+    validations:
+      required: true
+
+  - type: textarea
+    id: prerequisites
+    attributes:
+      label: Real-World Prerequisites
+      description: What non-code requirements exist in this domain? (licenses, certifications, legal, etc.)
+      placeholder: "e.g., HIPAA compliance, medical license verification, insurance API integration..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Any existing products, standards, or resources that could help design this template.
+    validations:
+      required: false

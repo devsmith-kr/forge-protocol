@@ -1,0 +1,84 @@
+name: Bug Report
+description: Report a bug in Forge Protocol
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      description: Where did you encounter this bug?
+      options:
+        - CLI
+        - Web UI
+        - Both
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      description: Which phase is affected?
+      options:
+        - "Phase 0.5: Meta-Smelt"
+        - "Phase 1: Smelt"
+        - "Phase 2: Shape"
+        - "Phase 3: Build"
+        - "Phase 4: Temper"
+        - "Phase 5: Inspect"
+        - "Other (init, status, assemble)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of what the bug is.
+      placeholder: When I run `forge smelt`, the dependency resolution...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Run `forge init --template commerce`
+        2. Run `forge smelt`
+        3. Select blocks X, Y, Z
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Please provide your environment details.
+      value: |
+        - OS:
+        - Node.js version:
+        - npm version:
+        - Forge Protocol version:
+        - Browser (if Web UI):
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Screenshots
+      description: Add any relevant logs or screenshots.
+    validations:
+      required: false

@@ -1,0 +1,245 @@
+/* ═══════════════════════════════════════════════════════
+   ONBOARDING MODAL
+═══════════════════════════════════════════════════════ */
+
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.onboarding-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  padding: 36px 40px 28px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Dots ─────────────────────────────────────── */
+.onboarding-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.onboarding-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--border-default);
+  cursor: pointer;
+  padding: 0;
+  transition: var(--t-fast);
+}
+
+.onboarding-dot.active {
+  background: var(--orange-500);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.onboarding-dot.done {
+  background: rgba(249,115,22,0.4);
+}
+
+/* ── Content ──────────────────────────────────── */
+.onboarding-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.onboarding-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.onboarding-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.onboarding-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.onboarding-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--orange-500);
+}
+
+/* ── AI 루프 스텝 ─────────────────────────────── */
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.onboarding-step-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-muted);
+}
+
+.onboarding-step-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--orange-500);
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.onboarding-step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.onboarding-step-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.onboarding-claude-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--border-muted);
+}
+
+.onboarding-claude-hint code {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  background: rgba(249,115,22,0.12);
+  color: var(--orange-500);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ── Phase 목록 ──────────────────────────────── */
+.onboarding-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.onboarding-phase-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--r-sm);
+}
+
+.onboarding-phase-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.onboarding-phase-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.onboarding-phase-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Footer ──────────────────────────────────── */
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-muted);
+}
+
+.onboarding-skip {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.onboarding-skip:hover {
+  color: var(--text-secondary);
+}
+
+.onboarding-nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.onboarding-prev {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--r-sm);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: var(--t-fast);
+}
+
+.onboarding-prev:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+.onboarding-next {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: var(--orange-500);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+.onboarding-next:hover {
+  background: #ea6f1a;
+}
