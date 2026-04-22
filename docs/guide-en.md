@@ -13,7 +13,7 @@
    - [Phase 0.5: Meta-Smelt](#phase-05-meta-smelt--catalog-setup)
    - [Phase 1: Smelt](#phase-1-smelt--block-selection)
    - [Phase 2: Shape](#phase-2-shape--architecture)
-   - [Phase 3: Build](#phase-3-build--api-contracts)
+   - [Phase 3: Forge](#phase-3-forge--api-contracts)
    - [Phase 4: Temper](#phase-4-temper--test-scenarios)
    - [Phase 5: Inspect](#phase-5-inspect--multi-perspective-review)
 5. [Web UI Walkthrough](#web-ui-walkthrough)
@@ -252,10 +252,10 @@ The `architecture-prompt.md` is a ready-to-paste Claude prompt for elaborating d
 
 ---
 
-### Phase 3: Build — API Contracts
+### Phase 3: Forge — API Contracts
 
 ```bash
-forge build
+forge forge
 ```
 
 Forge infers REST endpoints for each block and produces:
@@ -383,7 +383,7 @@ cd web && npm run dev
 npm run bridge -- --project-dir ../my-project
 ```
 
-### Code Generation Modes (Phase 3 Build)
+### Code Generation Modes (Phase 3 Forge)
 
 | Mode | Button | Requirements | Cost |
 |------|--------|-------------|------|

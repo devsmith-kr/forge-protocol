@@ -29,6 +29,9 @@
 
 ### 변경
 
+- **Phase 3 명령어 rename**: `forge build` → `forge forge` — Phase 이름 "Forge (단조)"와
+  실제 코드를 만들어내는 의지를 명령어에 일치. 대장간 은유(제련→성형→단조→담금질) 일관성 유지.
+  구현 파일명(`lib/build.js`)은 그대로, 사용자 노출 명령어와 Phase 라벨만 변경.
 - `bin/forge.js` — `ForgeError` 친화 wrap 적용, 모든 명령어가 일관된 에러 표시
 - `lib/core/` 디렉토리로 공통 유틸 통합 (`project.js`, `ui.js`, `errors.js`, `version.js`)
 - `package.json` `files` 필드에 `lib/`, `shared/`, `CHANGELOG.md` 포함 — npm 패키지에

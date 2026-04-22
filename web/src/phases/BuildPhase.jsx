@@ -198,7 +198,7 @@ export default function BuildPhase({ onNext, onPrev }) {
       <div className="phase-intro">
         <div className="phase-intro-icon">⚒️</div>
         <div>
-          <h2 className="phase-intro-title">Build — 단조</h2>
+          <h2 className="phase-intro-title">Forge — 단조</h2>
           <p className="phase-intro-desc">
             블럭 분석 완료.
             <span className="badge-inline">{groups.length}개 서비스</span>

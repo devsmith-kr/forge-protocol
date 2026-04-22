@@ -52,7 +52,7 @@ forge-protocol/
 │   ├── meta-smelt.js         # forge meta-smelt (Phase 0)
 │   ├── smelt.js              # forge smelt (Phase 1)
 │   ├── shape.js              # forge shape (Phase 2)
-│   ├── build.js              # forge build (Phase 3)
+│   ├── build.js              # forge forge (Phase 3)
 │   ├── temper.js             # forge temper (Phase 4)
 │   ├── inspect.js            # forge inspect (Phase 5)
 │   ├── assemble.js           # forge assemble
@@ -65,7 +65,7 @@ forge-protocol/
 │       ├── ui.js             # 리치 UI 컴포넌트
 │       └── project.js        # 프로젝트 유틸리티
 ├── templates/
-│   └── commerce/catalog.yml  # Commerce 템플릿 (22개 블럭)
+│   └── commerce/catalog.yml  # Commerce 템플릿 (21개 블럭 / 19개 의존성 / 6 World)
 ├── web/                      # React + Vite Web UI
 └── docs/                     # 문서
 ```

@@ -13,7 +13,7 @@
    - [Phase 0.5: Meta-Smelt](#phase-05-meta-smelt--카탈로그-설정)
    - [Phase 1: Smelt](#phase-1-smelt--블럭-선택)
    - [Phase 2: Shape](#phase-2-shape--아키텍처)
-   - [Phase 3: Build](#phase-3-build--api-계약)
+   - [Phase 3: Forge](#phase-3-forge--api-계약)
    - [Phase 4: Temper](#phase-4-temper--테스트-시나리오)
    - [Phase 5: Inspect](#phase-5-inspect--멀티-관점-검수)
 5. [Web UI 워크스루](#web-ui-워크스루)
@@ -253,10 +253,10 @@ Forge가 선택된 블럭의 `tech_desc` 필드를 분석해 아키텍처 결정
 
 ---
 
-### Phase 3: Build — API 계약
+### Phase 3: Forge — API 계약
 
 ```bash
-forge build
+forge forge
 ```
 
 각 블럭의 REST 엔드포인트를 자동 추론해 계약을 생성합니다.
@@ -384,7 +384,7 @@ cd web && npm run dev
 npm run bridge -- --project-dir ../my-project
 ```
 
-### 코드 생성 3가지 모드 (Phase 3 Build)
+### 코드 생성 3가지 모드 (Phase 3 Forge)
 
 | 모드 | 버튼 | 필요 조건 | 비용 |
 |------|------|----------|------|

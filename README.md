@@ -73,7 +73,7 @@ $ forge smelt
 
 Web UI는 5단계 전체를 시각적으로 안내합니다.
 
-> 스크린샷과 호스팅 데모는 프로젝트 GitHub 저장소에서 확인할 수 있습니다.
+> 스크린샷과 호스팅 데모는 추가 예정입니다. 현재는 저장소를 로컬로 체크아웃 후 `cd web && npm install && npm run dev` 로 실행하세요.
 
 ## 두 가지 인터페이스
 
@@ -103,8 +103,12 @@ Web UI는 5단계 전체를 시각적으로 안내합니다.
 ### CLI
 
 ```bash
-# 글로벌 설치
+# 글로벌 설치 (npm 최초 배포 후 사용 가능)
 npm install -g forge-protocol
+
+# 또는 저장소 체크아웃으로 로컬 실행 (배포 전 현재 방식)
+git clone https://github.com/devsmith-kr/forge-protocol.git
+cd forge-protocol && npm install && npm link
 
 # 프로젝트 초기화
 mkdir my-project && cd my-project
@@ -114,7 +118,7 @@ forge init          # .forge/ 디렉토리 구조 생성
 forge meta-smelt    # 빌트인 템플릿 선택 또는 AI 카탈로그 생성
 forge smelt         # 블럭 선택 + 의존성 해결
 forge shape         # 아키텍처 결정
-forge build         # API 계약 (contracts.yml) + Claude 프롬프트
+forge forge         # API 계약 (contracts.yml) + Claude 프롬프트 (= 단조 Phase)
 forge temper        # Given-When-Then 테스트 시나리오
 forge inspect       # 멀티 관점 검수
 

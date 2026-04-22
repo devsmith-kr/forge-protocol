@@ -30,7 +30,7 @@ Web UI → Claude API 직접 호출 → 실제 파일 생성
 - `architecture.yml`: 서비스 구조, 기술 스택, ADR
 - `docs/architecture.md`: 사람이 읽을 수 있는 아키텍처 문서
 
-### Phase 3 (Build) → API 계약 + 스켈레톤 코드
+### Phase 3 (Forge) → API 계약 + 스켈레톤 코드
 우선순위 높음. 실제 가치 전달이 가장 명확한 단계.
 
 **생성 대상:**
@@ -90,7 +90,7 @@ Web UI → 백엔드 프록시 → Claude API → 생성된 코드 → 다운로
 3. Web UI에서 생성 버튼 → API 호출 → 결과 ZIP 다운로드
 
 ### Option B: 로컬 CLI 연동
-Web UI가 생성한 YAML 파일을 로컬에 저장 → CLI `forge build --from-web`으로 처리.
+Web UI가 생성한 YAML 파일을 로컬에 저장 → CLI `forge forge --from-web`으로 처리.
 
 **장점:** API 키 불필요, 보안 이슈 없음  
 **단점:** 브라우저-파일시스템 연동 복잡 (File System Access API 필요)
@@ -99,7 +99,7 @@ Web UI가 생성한 YAML 파일을 로컬에 저장 → CLI `forge build --from-
 
 ## 단기 실행 계획 (MVP)
 
-### Step 1: Phase 3 (Build) — OpenAPI 직접 생성 (Claude 없이)
+### Step 1: Phase 3 (Forge) — OpenAPI 직접 생성 (Claude 없이)
 `generators.js`의 엔드포인트 추론 데이터를 바탕으로 OpenAPI 3.1 YAML 직접 생성.
 Claude 없이도 구조적으로 정확한 명세 생성 가능.
 
@@ -110,7 +110,7 @@ export function generateOpenApiSpec(allSelected, catalogData) → openapi.yml st
 
 Web UI에 "Download openapi.yml" 버튼 추가.
 
-### Step 2: Phase 3 (Build) — Java 스켈레톤 생성
+### Step 2: Phase 3 (Forge) — Java 스켈레톤 생성
 OpenAPI 스펙 → Claude API → Spring Boot 스켈레톤 코드.
 결과를 ZIP으로 묶어 다운로드.
 

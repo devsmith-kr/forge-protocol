@@ -76,7 +76,7 @@ program
   .action(wrap(runShape));
 
 program
-  .command('build')
+  .command('forge')
   .description('Phase 3: 단조 — API 계약 + 코드 생성 프롬프트')
   .action(wrap(runBuild));
 
@@ -168,7 +168,7 @@ async function runInteractiveMenu() {
     'forge meta-smelt': runMetaSmelt,
     'forge smelt':      runSmelt,
     'forge shape':      runShape,
-    'forge build':      runBuild,
+    'forge forge':      runBuild,
     'forge temper':     runTemper,
     'forge inspect':    runInspect,
     'forge status':     showStatus,

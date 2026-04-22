@@ -1,6 +1,6 @@
 # Forge Protocol Web UI — 아키텍처 문서
 
-> 최종 업데이트: 2026-04-17
+> 최종 업데이트: 2026-04-22
 > 경로: `web/`
 
 ---
@@ -30,7 +30,7 @@ CLI가 파일 출력 중심이라면, Web UI는 3가지 코드 생성 방식을 
 
 ## 파일별 역할
 
-### `App.jsx` (~175줄)
+### `App.jsx` (~200줄)
 메인 진입점. Phase 상태 관리 + 각 Phase 컴포넌트 렌더링.
 이전의 단일 1647줄 파일을 phases/, components/, hooks/로 분리.
 
@@ -102,7 +102,7 @@ export const PHASES = [
   { id: 'meta-smelt', label: 'Meta-Smelt', ko: '발굴', icon: '✨', desc: '요구사항 분석' },
   { id: 'smelt',      label: 'Smelt',      ko: '제련', icon: '🔥', desc: '블럭 선택' },
   { id: 'shape',      label: 'Shape',      ko: '성형', icon: '🏛️', desc: '아키텍처' },
-  { id: 'build',      label: 'Build',      ko: '단조', icon: '⚒️', desc: 'API 계약' },
+  { id: 'build',      label: 'Forge',      ko: '단조', icon: '⚒️', desc: 'API 계약' },
   { id: 'temper',     label: 'Temper',     ko: '담금질',icon: '💧', desc: '테스트' },
   { id: 'inspect',    label: 'Inspect',    ko: '검수', icon: '🔍', desc: '멀티 리뷰' },
 ]

@@ -30,7 +30,7 @@ const GUIDE_SECTIONS = [
   {
     id: 'build',
     icon: '⚒️',
-    label: 'Build',
+    label: 'Forge',
     content: <BuildContent />,
   },
   {
@@ -107,7 +107,7 @@ function OverviewContent() {
           { icon: '✨', label: 'Meta-Smelt', ko: '요구사항 → AI 블럭 추천' },
           { icon: '🔥', label: 'Smelt',      ko: '블럭 선택 + 의존성 해결' },
           { icon: '🏛️', label: 'Shape',      ko: '아키텍처 결정 + ADR' },
-          { icon: '⚒️', label: 'Build',      ko: 'API 계약 자동 생성' },
+          { icon: '⚒️', label: 'Forge',      ko: 'API 계약 자동 생성' },
           { icon: '💧', label: 'Temper',     ko: 'GWT 테스트 시나리오' },
           { icon: '🔍', label: 'Inspect',    ko: '보안·성능·운영·확장성' },
         ].map((p, i, arr) => (
@@ -159,7 +159,7 @@ function MetaSmeltContent() {
 
       <Step num="1">카탈로그 선택</Step>
       <div className="guide-indent">
-        <div className="guide-option"><Badge color="orange">기본</Badge> Commerce — 22개 블럭 즉시 사용</div>
+        <div className="guide-option"><Badge color="orange">기본</Badge> Commerce — 21개 블럭 즉시 사용</div>
         <div className="guide-option"><Badge color="blue">업로드</Badge> 내 <CodeSnip>catalog.yml</CodeSnip> 파일 또는 붙여넣기</div>
       </div>
 
@@ -430,7 +430,7 @@ const SECTION_META = [
   { id: 'meta-smelt',  icon: '✨', label: 'Meta-Smelt' },
   { id: 'smelt',       icon: '🔥', label: 'Smelt' },
   { id: 'shape',       icon: '🏛️', label: 'Shape' },
-  { id: 'build',       icon: '⚒️', label: 'Build' },
+  { id: 'build',       icon: '⚒️', label: 'Forge' },
   { id: 'temper',      icon: '💧', label: 'Temper' },
   { id: 'inspect',     icon: '🔍', label: 'Inspect' },
 ]

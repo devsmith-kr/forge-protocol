@@ -24,7 +24,7 @@ body:
         - "Phase 0.5: Meta-Smelt"
         - "Phase 1: Smelt"
         - "Phase 2: Shape"
-        - "Phase 3: Build"
+        - "Phase 3: Forge"
         - "Phase 4: Temper"
         - "Phase 5: Inspect"
         - "Other (init, status, assemble)"

@@ -1,6 +1,6 @@
 # Forge Protocol — 구현 현황 (Implementation Status)
 
-> 최종 업데이트: 2026-04-10
+> 최종 업데이트: 2026-04-22 (v0.3.0 기준)
 
 ---
 
@@ -8,10 +8,13 @@
 
 | 레이어 | 상태 | 비고 |
 |--------|------|------|
-| CLI (Node.js ESM) | ✅ 완료 | Phase 0~5 전체 구현, Rich UI |
-| Web UI (React + Vite) | ✅ 완료 | Phase 0~5, localStorage 세션 |
-| 코드 생성 연동 | 🔜 예정 | Web 출력물 → 실제 소스 생성 |
-| npm 패키징 | 🔜 예정 | 개발 완성 후 진행 |
+| CLI (Node.js ESM) | ✅ 완료 | Phase 0~5 + `emit` + `assemble`, Rich UI |
+| Web UI (React + Vite) | ✅ 완료 | Phase 0~5, localStorage 세션, i18n(ko/en) |
+| 코드 생성 (백엔드) | ✅ 완료 | `shared/` 공용 생성기 → OpenAPI 3.1 + Spring Boot + JUnit5 |
+| Claude Bridge | ✅ 완료 | SSE 스트리밍, Claude Code CLI / Claude API 2가지 모드 |
+| npm 패키징 | 🟡 준비됨 (미배포) | package.json v0.3.0, 배포 전 — `npm publish` 실행 필요 |
+| 프론트엔드 코드 생성 | 🔜 예정 | `forge shape` 결정만 기록, 스켈레톤 emit 미구현 |
+| 두 번째 템플릿 | 🔜 예정 | commerce 외 도메인 카탈로그 없음 |
 
 ---
 
@@ -23,21 +26,36 @@ lib/
   core/
     project.js            # 공통 파일 로드 헬퍼
     ui.js                 # 리치 CLI UI 엔진 (phaseBar, dashboard 등)
+    errors.js             # 표준 에러 클래스
+    version.js            # CLI 버전 상수
   init.js                 # forge init
   meta-smelt.js           # forge meta-smelt
   smelt.js                # forge smelt
   shape.js                # forge shape
-  build.js                # forge build
+  build.js                # forge forge (파일명은 build.js 유지)
   temper.js               # forge temper
   inspect.js              # forge inspect
+  emit.js                 # forge emit (contracts/tests → .forge/generated)
+  emit/generators.js      # emit 내부 생성기 래퍼
   assemble.js             # forge assemble
   assembler.js            # 조립 엔진
   status.js               # forge status
   catalog.js              # 카탈로그 로더
   dependency.js           # 의존성 재귀 해결 엔진
   domain-surveys.js       # 도메인별 맞춤 설문 정의
+  decisions.js            # Phase별 결정 로직 (Shape/Build/Temper/Inspect)
+  schemas.js              # zod 스키마
+  constants.js            # CLI 전역 상수
+shared/                   # CLI/Web 공용 코드 생성기
+  openapi.js              # OpenAPI 3.1 YAML 생성
+  java-api.js             # Controller/DTO 스켈레톤
+  java-service.js         # Service/Repository/Entity 스켈레톤
+  java-test.js            # JUnit5 테스트 클래스
+  names.js                # 식별자/패키지명 규칙
+  project.js              # pom.xml / build.gradle / application.yml
+  index.js                # 퍼블릭 진입점
 templates/
-  commerce/catalog.yml    # 커머스 22개 블럭, 19개 의존성
+  commerce/catalog.yml    # 커머스 21개 블럭, 19개 의존성, 6개 World
 ```
 
 ---
@@ -65,10 +83,10 @@ templates/
 
 ### `forge shape` (Phase 2: 성형)
 - 선택 블럭 `tech_desc` 분석 → 기술 스택/인프라 자동 감지
-- 기술 스택 결정, ADR 생성
+- 기술 스택 결정 (백엔드/프론트엔드/DB 등), ADR 생성
 - 출력: `architecture.yml`, `architecture-prompt.md`
 
-### `forge build` (Phase 3: 단조)
+### `forge forge` (Phase 3: 단조)
 - 블럭별 API 엔드포인트 자동 추론
 - RESTful 계약 명세 생성
 - 출력: `contracts.yml`, `build-prompt.md`
@@ -82,6 +100,13 @@ templates/
 - 보안 / 성능 / 운영 / 확장성 4개 관점 자동 검수
 - 블럭 `tech_desc` 기반 위험 항목 감지
 - 출력: `forge-report.md`, `inspect-prompt.md`
+
+### `forge emit` (코드 생성)
+- 입력: `contracts.yml` (+ `test-scenarios.yml`)
+- `--target backend | tests | all` 선택 (기본: `all`)
+- `--build gradle | maven` 선택 (기본: `gradle`)
+- 출력: `.forge/generated/backend/` 하위에 OpenAPI + Spring Boot + JUnit5 파일 직접 기록
+- 내부: `shared/` 모듈을 CLI와 Web UI가 공용으로 사용
 
 ### `forge assemble`
 - 플랜 파일(md/yml) 파싱 → 블럭 자동 조립
@@ -103,33 +128,41 @@ templates/
 ```
 web/
   src/
-    App.jsx                     # 메인 앱 (~175줄)
+    App.jsx                     # 메인 앱 (Phase 조율)
     catalog.js                  # 빌트인 Commerce 카탈로그 (JS)
     constants.js                # PHASES 공유 상수
     generators.js               # Phase별 출력물 생성 엔진
-    promptGenerator.js          # CLI 수준 고품질 프롬프트 생성 엔진 ★ NEW
-    codeGenerators.js           # OpenAPI + Java 스켈레톤 코드 생성
+    promptGenerator.js          # CLI 수준 고품질 프롬프트 생성 엔진
+    codeGenerators.js           # shared/ 래핑 — OpenAPI + Java 스켈레톤
     metaSmeltUtils.js           # Claude 프롬프트 빌더/파서
     parseCatalog.js             # YAML 파싱 + 검증
     GuidePanel.jsx              # Phase별 사용 가이드 패널
+    guide.css / meta-smelt.css / App.css
+    i18n/                       # 다국어 컨텍스트
+    locales/                    # ko / en 번역 JSON
+    context/                    # React Context (프로젝트 상태)
     phases/
       MetaSmeltPhase.jsx        # Phase 0
       SmeltPhase.jsx            # Phase 1
       ShapePhase.jsx            # Phase 2
-      BuildPhase.jsx            # Phase 3 (3가지 코드 생성 모드) ★ 확장
-      TemperPhase.jsx           # Phase 4 (프롬프트 복사 추가) ★ 확장
+      BuildPhase.jsx            # Phase 3 (3가지 실행 모드)
+      TemperPhase.jsx           # Phase 4 (프롬프트 복사 + Bridge 실행)
       InspectPhase.jsx          # Phase 5
     components/
       PhaseBar.jsx              # 상단 Phase 탐색 바
       PhaseNav.jsx              # 이전/다음 네비게이션
+      PhaseShell.jsx            # Phase 공통 껍데기(DownloadBar 포함)
       AnimatedNumber.jsx        # 스프링 카운터
       OnboardingModal.jsx       # 첫 방문 AI 루프 안내
       OnboardingModal.css
+      ErrorBoundary.jsx         # 런타임 에러 캡처
+      ClaudeBridgePanel.jsx     # Bridge 3가지 모드 UI
     hooks/
       usePersistedState.js      # localStorage 세션 저장/복원
-      useClaudeBridge.js        # Bridge 서버 연결 Hook (SSE) ★ NEW
+      useClaudeBridge.js        # Bridge 서버 SSE 연결 Hook
   server/
-    bridge.js                   # Claude Code + API 프록시 서버 ★ NEW
+    bridge.js                   # Claude Code CLI + Claude API 프록시 서버(SSE)
+  test/                         # vitest 테스트
 ```
 
 ---
@@ -153,20 +186,19 @@ web/
 - 기술 스택 + 인프라 카드 자동 감지
 - ADR 결정사항 + Claude 프롬프트 복사
 
-### BuildPhase (Phase 3) ★ 확장
+### BuildPhase (Phase 3)
 - 서비스별 API 엔드포인트 추론
 - EndpointRow: Method, Path, 설명
-- 코드 생성 3가지 모드:
+- 코드 생성 3가지 모드 (`ClaudeBridgePanel`):
   - 📋 Claude 프롬프트 복사 (항상 가능, 서버 불필요)
-  - 🚀 Claude Code 실행 (Bridge 서버 + Claude Code CLI)
+  - 🚀 Claude Code 실행 (Bridge 서버 + Claude Code CLI, SSE 스트리밍)
   - 🔑 Claude API (Bridge 서버 + API 키, 모델 선택 가능)
-- SSE 실시간 진행률 바
 - Bridge 미연결 시 안내 메시지 표시
 
-### TemperPhase (Phase 4) ★ 확장
+### TemperPhase (Phase 4)
 - 블럭별 GWT 테스트 카드
 - Happy Path / Edge Case 분류
-- 📋 Claude 테스트 프롬프트 복사 버튼 추가
+- 📋 프롬프트 복사 + 🚀 Bridge 실행
 
 ### InspectPhase (Phase 5)
 - ScoreRing: 보안/성능/운영/확장성 점수 시각화
@@ -177,9 +209,9 @@ web/
 
 ## 템플릿 현황
 
-| 템플릿 | catalog.yml | 블럭 수 | 의존성 | 상태 |
-|--------|-------------|---------|--------|------|
-| commerce | ✅ | 22 | 19 | 완료 |
+| 템플릿 | catalog.yml | 블럭 수 | 의존성 | World | 상태 |
+|--------|-------------|---------|--------|-------|------|
+| commerce | ✅ | 21 | 19 | 6 | 완료 |
 
 ---
 
@@ -205,6 +237,9 @@ web/
 │   ├── forge-report.md       # Phase 5 결과
 │   └── inspect-prompt.md
 └── generated/
-    ├── src/
-    └── test/
+    └── backend/              # forge emit 결과 (Spring Boot + JUnit5)
+        ├── build.gradle  또는  pom.xml
+        ├── src/main/java/...
+        ├── src/main/resources/application.yml
+        └── src/test/java/...
 ```

@@ -8,6 +8,8 @@
 |------|------|
 | `core/project.js` | 공통 파일 로드 헬퍼 — `loadState`, `loadSmeltResult`, `loadArchitecture`, `loadContracts`, `loadTestScenarios`, `printDone` |
 | `core/ui.js` | 리치 CLI UI 엔진 — `phaseBar`, `progressBar`, `header`, `commandHeader`, `box`, `renderDashboard`, `renderPhaseTable`, `renderFileStatus`, `getPhaseStatus`, `getNextPhase` |
+| `core/errors.js` | 표준 에러/예외 클래스 — 사용자 메시지와 디버그 메시지를 분리 |
+| `core/version.js` | CLI 버전 상수 (`package.json`과 동기화) |
 
 ### 커맨드별
 
@@ -17,9 +19,11 @@
 | `meta-smelt.js` | `forge meta-smelt` — **Step 0**: 카탈로그 방식 선택 (빌트인 즉시 복사 or AI 커스텀 6단계 설문 → 프롬프트 생성) |
 | `smelt.js` | `forge smelt` — World별 블럭 체크박스 → 의존성 해결 → 결정 질문 → `intent.yml` 생성. World 완료마다 draft 저장 (중단 후 재개 가능) |
 | `shape.js` | `forge shape` — 블럭 tech_desc 분석 → 기술 스택/인프라 결정 → `architecture.yml` + `architecture-prompt.md` |
-| `build.js` | `forge build` — 블럭별 API 엔드포인트 자동 추론 → `contracts.yml` + `build-prompt.md` |
+| `build.js` | `forge forge` — 블럭별 API 엔드포인트 자동 추론 → `contracts.yml` + `build-prompt.md` (파일명은 `build.js` 유지 — 명령만 rename) |
 | `temper.js` | `forge temper` — 블럭별 Given-When-Then 시나리오 → `test-scenarios.yml` + `temper-prompt.md` |
 | `inspect.js` | `forge inspect` — 보안/성능/운영/확장성 4관점 자동 감지 → `forge-report.md` + `inspect-prompt.md` |
+| `emit.js` | `forge emit` — `contracts.yml`(+ `test-scenarios.yml`) → `.forge/generated/backend/` 에 실제 파일 기록. `--target backend\|tests\|all`, `--build gradle\|maven` |
+| `emit/generators.js` | emit 내부 생성기 래퍼 — `shared/` 모듈을 CLI 컨텍스트에서 호출 |
 | `assemble.js` | `forge assemble` — 플랜 파일(md/yml) 파싱 → 블럭 자동 조립 → `roadmap.yml` + `intent.yml` |
 | `assembler.js` | assemble 조립 엔진 |
 | `status.js` | `forge status` — `renderDashboard()` 기반 리치 대시보드 출력 |
@@ -27,6 +31,10 @@
 | `dependency.js` | `resolveAll(selectedIds, catalog)` — 의존성 재귀 해결, 자동추가, 영향블럭, W0 준비물 일괄 반환 |
 | `decisions.js` | `promptDecisions(decisions, blockMap)` + `formatDecisionAnswer(d, a)` — cascade 결정 대화형 질문을 smelt.js에서 분리, prompt/log 주입으로 단위 테스트 가능 |
 | `domain-surveys.js` | `getSurveyForDomain(domain)` — 도메인별 deepDive/suggestedRoles/constraints 반환 |
+| `schemas.js` | zod 스키마 — `intent.yml` / `contracts.yml` / `test-scenarios.yml` 검증 |
+| `constants.js` | CLI 전역 상수 — Phase ID, 파일명, 기본 경로 |
+
+> 실제 코드 생성 로직은 `shared/` 모듈에 있으며 CLI(`lib/emit.js`)와 Web UI(`web/src/codeGenerators.js`)가 공용으로 사용한다.
 
 ---
 

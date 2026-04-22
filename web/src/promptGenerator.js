@@ -129,7 +129,7 @@ ${decisionList || '(없음)'}
 }
 
 // ═══════════════════════════════════════════════════════════
-// Phase 3: Build — 코드 생성 프롬프트
+// Phase 3: Forge — 코드 생성 프롬프트
 // ═══════════════════════════════════════════════════════════
 
 export function generateBuildPrompt(allSelected, catalogData) {
@@ -224,7 +224,7 @@ ${blockDetails}
 }
 
 // ═══════════════════════════════════════════════════════════
-// Phase 3: Build — Claude Code 실행용 프롬프트 (파일 직접 생성)
+// Phase 3: Forge — Claude Code 실행용 프롬프트 (파일 직접 생성)
 // ═══════════════════════════════════════════════════════════
 
 export function generateBuildExecutionPrompt(allSelected, catalogData, outputDir) {

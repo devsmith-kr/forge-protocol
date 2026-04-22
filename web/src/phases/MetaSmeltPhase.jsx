@@ -6,7 +6,7 @@ import { buildMetaSmeltPrompt, parseClaudeResponse,
 import { parseCatalogYml, validateCatalog } from '../parseCatalog'
 
 const CATALOG_SOURCES = [
-  { id: 'builtin',    icon: '🏪', label: 'Commerce (기본 제공)', desc: '커머스 도메인 22개 블럭 — 쇼핑몰, 마켓플레이스' },
+  { id: 'builtin',    icon: '🏪', label: 'Commerce (기본 제공)', desc: '커머스 도메인 21개 블럭 — 쇼핑몰, 마켓플레이스' },
   { id: 'ai-generate',icon: '✨', label: 'AI로 신규 생성',       desc: '도메인 설명 → Claude Code → catalog.yml 자동 생성' },
   { id: 'upload',     icon: '📂', label: '파일 업로드',          desc: 'forge init 또는 직접 작성한 catalog.yml' },
 ]

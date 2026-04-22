@@ -27,7 +27,7 @@ const STEPS = [
       { icon: '✨', name: 'Meta-Smelt', desc: 'AI 블럭 추천' },
       { icon: '🔥', name: 'Smelt',      desc: '블럭 선택' },
       { icon: '🏛️', name: 'Shape',      desc: '아키텍처 자동 생성' },
-      { icon: '⚒️', name: 'Build',      desc: 'API 계약 자동 생성' },
+      { icon: '⚒️', name: 'Forge',      desc: 'API 계약 자동 생성' },
       { icon: '💧', name: 'Temper',     desc: '테스트 시나리오 생성' },
       { icon: '🔍', name: 'Inspect',    desc: '멀티 관점 리뷰' },
     ],
