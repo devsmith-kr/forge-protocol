@@ -98,6 +98,7 @@ blocks:
     priority: required
     effort_days: 5
     api_style: resource
+    concerns: [file-upload]
 
   - id: product-category
     bundle_id: b-seller-product
@@ -118,6 +119,7 @@ blocks:
     priority: required
     effort_days: 4
     api_style: resource
+    concerns: [concurrency]
 
   # ── 사는 사람의 세계 ──
   - id: buyer-signup
@@ -129,6 +131,7 @@ blocks:
     priority: required
     effort_days: 4
     api_style: resource
+    concerns: [auth, pii]
 
   - id: product-search
     bundle_id: b-buyer-browse
@@ -139,6 +142,7 @@ blocks:
     priority: required
     effort_days: 5
     api_style: query
+    concerns: [search]
 
   - id: product-detail
     bundle_id: b-buyer-browse
@@ -159,6 +163,7 @@ blocks:
     priority: required
     effort_days: 3
     api_style: resource
+    concerns: [concurrency]
 
   - id: order
     bundle_id: b-buyer-purchase
@@ -169,6 +174,7 @@ blocks:
     priority: required
     effort_days: 5
     api_style: resource
+    concerns: [concurrency]
 
   - id: order-history
     bundle_id: b-buyer-after
@@ -189,6 +195,7 @@ blocks:
     priority: required
     effort_days: 4
     api_style: resource
+    concerns: [payment]
 
   - id: review
     bundle_id: b-buyer-after
@@ -199,6 +206,7 @@ blocks:
     priority: optional
     effort_days: 3
     api_style: resource
+    concerns: [file-upload]
 
   - id: coupon
     bundle_id: b-buyer-purchase
@@ -209,6 +217,7 @@ blocks:
     priority: optional
     effort_days: 5
     api_style: resource
+    concerns: [payment]
 
   # ── 돈이 흐르는 세계 ──
   - id: payment
@@ -220,6 +229,7 @@ blocks:
     priority: required
     effort_days: 5
     api_style: resource
+    concerns: [payment, concurrency]
 
   - id: refund
     bundle_id: b-money-refund
@@ -230,6 +240,7 @@ blocks:
     priority: required
     effort_days: 4
     api_style: resource
+    concerns: [payment]
 
   - id: settlement
     bundle_id: b-money-settle
@@ -240,6 +251,7 @@ blocks:
     priority: required
     effort_days: 7
     api_style: resource
+    concerns: [payment]
 
   # ── 물건이 이동하는 세계 ──
   - id: shipping
@@ -251,6 +263,7 @@ blocks:
     priority: required
     effort_days: 4
     api_style: query
+    concerns: [realtime]
 
   - id: return-logistics
     bundle_id: b-logistics-shipping
@@ -272,6 +285,7 @@ blocks:
     priority: optional
     effort_days: 5
     api_style: query
+    concerns: [pii]
 
   # ── 연결하는 세계 ──
   - id: notification
@@ -283,6 +297,7 @@ blocks:
     priority: optional
     effort_days: 4
     api_style: resource
+    concerns: [notification, realtime]
 
   - id: pg-integration
     bundle_id: b-intg-pay
@@ -293,6 +308,7 @@ blocks:
     priority: required
     effort_days: 5
     api_style: internal
+    concerns: [payment]
 
   - id: social-login
     bundle_id: b-buyer-auth
@@ -303,6 +319,7 @@ blocks:
     priority: optional
     effort_days: 3
     api_style: resource
+    concerns: [auth]
 
 # ── 의존성 정의 ──
 dependencies:

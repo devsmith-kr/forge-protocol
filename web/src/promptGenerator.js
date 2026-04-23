@@ -12,6 +12,7 @@ import {
   generateTestScenarios,
   generateInspectReport,
 } from './generators'
+import { collectConcerns, buildConcernFragments } from '../../shared/concerns.js'
 
 // ═══════════════════════════════════════════════════════════
 // 내부 유틸
@@ -123,9 +124,11 @@ ${decisionList || '(없음)'}
 
 - 각 블럭의 핵심 API 엔드포인트를 최소 1개씩 명시해주세요.
 - 데이터 모델에서 가장 복잡한 관계(N:M, 상태머신 등)를 집중 설명해주세요.
-- 결제/인증/동시성 처리는 반드시 구체적인 코드 패턴을 포함해주세요.
 - 초기 배포 아키텍처(최소 비용으로 시작하는 방법)도 포함해주세요.
-`
+${(() => {
+  const bullets = buildConcernFragments(collectConcerns(blocks), 'shape').map(f => \`- \${f}\`).join('\\n')
+  return bullets ? '\\n### 도메인 특수 고려사항 (선택된 블럭 기반 자동 감지)\\n\\n' + bullets + '\\n' : ''
+})()}`
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -513,11 +516,12 @@ ${scenarioBlocks}
 위 시나리오를 바탕으로 실제 실행 가능한 테스트 코드를 생성해주세요.
 
 **추가 요청사항:**
-- 동시성 테스트는 \`ExecutorService\`로 멀티스레드 시뮬레이션.
-- 결제 테스트는 PG사 웹훅 Mock 서버(\`MockWebServer\` 또는 WireMock) 포함.
 - 각 테스트 파일 앞에 \`// === BLOCK: {block_id} ===\` 헤더 추가.
 - 모든 테스트는 \`.forge/generated/\` 하위의 소스 코드를 대상으로 작성해주세요.
-`
+${(() => {
+  const bullets = buildConcernFragments(collectConcerns(blocks), 'temper').map(f => \`- \${f}\`).join('\\n')
+  return bullets ? '\\n**선택된 블럭에 적용되는 도메인 특수 지침:**\\n' + bullets + '\\n' : ''
+})()}`
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -594,7 +598,6 @@ ${findingsText}
 #### 보안 리뷰 요청
 - OWASP Top 10 기준으로 현재 아키텍처의 취약점을 분석하세요.
 - 인증/인가 흐름의 보안 허점을 찾아 구체적인 코드 패턴으로 개선안을 제시하세요.
-- 결제 관련 보안 (금액 검증, PG사 웹훅 서명, 멱등성)을 반드시 다루세요.
 
 #### 성능 리뷰 요청
 - JPA/DB 사용 패턴에서 N+1, 풀테이블스캔, 인덱스 미사용 위험을 분석하세요.
@@ -610,6 +613,10 @@ ${findingsText}
 - 현재 아키텍처에서 트래픽 10배 증가 시 병목이 될 위치를 예측하세요.
 - 단일장애점을 제거하기 위한 아키텍처 변경안을 제시하세요.
 - 이벤트 기반 아키텍처로의 점진적 전환 로드맵을 제안하세요.
+${(() => {
+  const bullets = buildConcernFragments(collectConcerns(blocks), 'inspect').map(f => \`- \${f}\`).join('\\n')
+  return bullets ? '\\n#### 도메인 특수 검수 요청 (선택된 블럭 기반 자동 감지)\\n' + bullets : ''
+})()}
 
 ---
 

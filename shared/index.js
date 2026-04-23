@@ -40,6 +40,13 @@ export {
 } from './api-inference.js';
 
 export {
+  KNOWN_CONCERNS,
+  concernsOf,
+  collectConcerns,
+  buildConcernFragments,
+} from './concerns.js';
+
+export {
   generateController,
   generateEntity,
   generateRepository,
