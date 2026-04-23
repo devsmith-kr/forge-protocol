@@ -52,6 +52,12 @@ export {
 } from './architecture-style.js';
 
 export {
+  PATTERN_RULES,
+  CONCERN_SCENARIOS,
+  buildScenariosForBlock,
+} from './scenario-patterns.js';
+
+export {
   generateController,
   generateEntity,
   generateRepository,
