@@ -29,11 +29,19 @@ jobs:
         run: npx prettier --check "lib/**/*.js" "bin/**/*.js" "test/**/*.js"
 
   test:
-    name: Test (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
+    name: Test (Node ${{ matrix.node-version }} · ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18, 20, 22]
+        os: [ubuntu-latest]
+        include:
+          # LTS 노드에서 Windows/macOS 커버 (CI 시간 절약)
+          - node-version: 20
+            os: windows-latest
+          - node-version: 20
+            os: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +59,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: P0 생성 품질 회귀 smoke
+        run: node scripts/verify-p0.mjs
 
   security:
     name: Security Audit
