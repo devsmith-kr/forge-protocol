@@ -34,6 +34,12 @@ export {
 export { generateOpenApiYaml } from './openapi.js';
 
 export {
+  inferEndpoints as inferEndpointsFromCatalog,
+  inferApiStyle,
+  toResourcePath,
+} from './api-inference.js';
+
+export {
   generateController,
   generateEntity,
   generateRepository,
