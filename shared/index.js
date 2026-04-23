@@ -47,6 +47,11 @@ export {
 } from './concerns.js';
 
 export {
+  ARCHITECTURE_STYLES,
+  pickArchitectureStyle,
+} from './architecture-style.js';
+
+export {
   generateController,
   generateEntity,
   generateRepository,

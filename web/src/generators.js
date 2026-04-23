@@ -2,7 +2,7 @@
 // 설계 원칙: catalog.yml 메타데이터(worlds/bundles/blocks)를 직접 읽어 도메인 무관 동작
 //           catalogData 없을 때만 레거시 커머스 하드코딩 모드로 폴백
 
-import { parseBody, parseResp, reqDtoName, respDtoName, javaType, inferApiStyle, toResourcePath } from '../../shared/index.js'
+import { parseBody, parseResp, reqDtoName, respDtoName, javaType, inferApiStyle, toResourcePath, pickArchitectureStyle } from '../../shared/index.js'
 
 const PALETTE = ['orange', 'blue', 'emerald', 'violet', 'amber', 'rose']
 
@@ -53,10 +53,16 @@ function inferInfra(blocks) {
   return infra
 }
 
-function buildDecisions(services, allBlocks) {
+function buildDecisions(services, allBlocks, catalogData) {
   const src = allBlocks.map(b => b.tech_desc || '').join(' ')
+  const style = pickArchitectureStyle({
+    blockCount: allBlocks.length,
+    serviceCount: services.length,
+    totalEffortDays: allBlocks.reduce((s, b) => s + (b.effort_days ?? 0), 0),
+    teamSize: catalogData?.team_size ?? 1,
+  })
   const decisions = [
-    { title: '아키텍처 스타일', choice: services.length >= 4 ? 'MSA (서비스 분리)' : '모듈러 모놀리스', reason: '초기 운영 복잡도 최소화 → 점진적 분리', adr: 'ADR-001' },
+    { title: '아키텍처 스타일', choice: style.choice, reason: style.reason, adr: 'ADR-001' },
     { title: 'API 스타일',     choice: 'REST + OpenAPI 3.1',                      reason: '생태계 호환성, Swagger 문서 자동화',            adr: 'ADR-002' },
     { title: '인증 방식',       choice: 'JWT (RS256) + Refresh Token Rotation',    reason: '무상태 서버, 보안 강화',                        adr: 'ADR-003' },
   ]
@@ -98,7 +104,7 @@ function buildArchFromCatalog(ids, catalog) {
     })
 
   const infra = inferInfra(selectedBlocks)
-  const decisions = buildDecisions(services, selectedBlocks)
+  const decisions = buildDecisions(services, selectedBlocks, catalog)
 
   const layers = [
     { id: 'client',  name: 'Client Layer',         icon: '🖥️',  color: '#818cf8', items: ['React 18 + Vite', 'React Query', 'TypeScript', 'Tailwind CSS'] },
