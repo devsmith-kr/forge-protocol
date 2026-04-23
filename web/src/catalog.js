@@ -129,3 +129,43 @@ export const BUILTIN_CATALOG = {
   bundleMap,
   resolveDeps,
 }
+
+// ── 다중 빌트인 템플릿 지원 (P1-3) ─────────────────────────
+// 두번째 이상 템플릿은 templates/ 의 YAML 을 런타임 파싱해 로드한다.
+// 하위 호환: `BUILTIN_CATALOG` 는 commerce 를 그대로 유지.
+
+import jobAggregatorYaml from '../../templates/job-aggregator/catalog.yml?raw'
+import { parseCatalogYml } from './parseCatalog.js'
+
+let _jobAggregatorCatalog = null
+function loadJobAggregator() {
+  if (_jobAggregatorCatalog) return _jobAggregatorCatalog
+  _jobAggregatorCatalog = parseCatalogYml(jobAggregatorYaml)
+  return _jobAggregatorCatalog
+}
+
+/**
+ * 사용 가능한 빌트인 템플릿 목록. `id` 는 Web UI 라디오/카드 value.
+ */
+export const BUILTIN_TEMPLATES = [
+  {
+    id: 'commerce',
+    icon: '🏪',
+    label: 'Commerce',
+    desc: '커머스 도메인 21개 블럭 — 쇼핑몰, 마켓플레이스',
+    get catalog() { return BUILTIN_CATALOG },
+  },
+  {
+    id: 'job-aggregator',
+    icon: '🔍',
+    label: 'Job Aggregator',
+    desc: '채용공고 통합 검색 17개 블럭 — 크롤링 + 검색 + 개인화',
+    get catalog() { return loadJobAggregator() },
+  },
+]
+
+/** 템플릿 id 로 카탈로그 객체 반환 */
+export function getBuiltinCatalog(id) {
+  const t = BUILTIN_TEMPLATES.find(t => t.id === id)
+  return t ? t.catalog : null
+}

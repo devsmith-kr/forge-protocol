@@ -1,14 +1,33 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BUILTIN_CATALOG } from '../catalog'
-import { buildMetaSmeltPrompt, parseClaudeResponse,
-         buildCatalogGenerationPrompt, extractYamlFromResponse } from '../metaSmeltUtils'
+import { BUILTIN_CATALOG, BUILTIN_TEMPLATES, getBuiltinCatalog } from '../catalog'
+import {
+  buildMetaSmeltPrompt,
+  parseClaudeResponse,
+  buildQuickCatalogPrompt,
+  buildDeepCatalogPrompt,
+  extractYamlFromResponse,
+} from '../metaSmeltUtils'
 import { parseCatalogYml, validateCatalog } from '../parseCatalog'
+import {
+  DOMAIN_OPTIONS,
+  SCALE_OPTIONS,
+  ROLE_OPTIONS,
+  getSurveyForDomain,
+  getWorkflowQuestions,
+} from '../../../shared/domain-surveys.js'
 
 const CATALOG_SOURCES = [
-  { id: 'builtin',    icon: '🏪', label: 'Commerce (기본 제공)', desc: '커머스 도메인 21개 블럭 — 쇼핑몰, 마켓플레이스' },
-  { id: 'ai-generate',icon: '✨', label: 'AI로 신규 생성',       desc: '도메인 설명 → Claude Code → catalog.yml 자동 생성' },
-  { id: 'upload',     icon: '📂', label: '파일 업로드',          desc: 'forge init 또는 직접 작성한 catalog.yml' },
+  // 빌트인 템플릿들 — BUILTIN_TEMPLATES 에서 자동 매핑
+  ...BUILTIN_TEMPLATES.map(t => ({
+    id: `builtin:${t.id}`,
+    icon: t.icon,
+    label: `${t.label} (기본 제공)`,
+    desc: t.desc,
+    builtinId: t.id,
+  })),
+  { id: 'ai-generate', icon: '✨', label: 'AI로 신규 생성', desc: '도메인 설명 → Claude Code → catalog.yml 자동 생성' },
+  { id: 'upload',      icon: '📂', label: '파일 업로드',    desc: 'forge init 또는 직접 작성한 catalog.yml' },
 ]
 
 const EXAMPLE_INPUTS = [
@@ -16,6 +35,18 @@ const EXAMPLE_INPUTS = [
   '마켓플레이스. 판매자가 상품 올리고, 구매자가 검색·구매. 카카오 로그인 필수.',
   '스타트업 커머스. 빠른 런칭 우선. 리뷰·쿠폰은 2차. 결제는 토스.',
 ]
+
+const DEEP_INITIAL = {
+  idea: '',
+  domain: 'commerce',
+  domainDetail: '',
+  deepDive: {},
+  roles: [],
+  workflows: {},
+  coreFeatures: '',
+  scale: 'mvp',
+  constraints: [],
+}
 
 const CONF_COLOR = { high: '#10b981', medium: '#f59e0b', low: '#6366f1' }
 
@@ -30,7 +61,7 @@ function WizardStep({ num, label, active, done }) {
 
 export default function MetaSmeltPhase({ onComplete }) {
   const [step, setStep]               = useState(1)
-  const [catalogSource, setCatalogSource] = useState('builtin')
+  const [catalogSource, setCatalogSource] = useState('builtin:commerce')
 
   // upload 방식
   const [customYml, setCustomYml]         = useState('')
@@ -38,14 +69,25 @@ export default function MetaSmeltPhase({ onComplete }) {
   const [catalogError, setCatalogError]   = useState(null)
   const fileInputRef = useRef(null)
 
-  // ai-generate 방식
-  const [aiGenDomain, setAiGenDomain]   = useState('')
-  const [aiGenPrompt, setAiGenPrompt]   = useState('')
-  const [aiGenPasted, setAiGenPasted]   = useState('')
-  const [aiGenCopied, setAiGenCopied]   = useState(false)
-  const [aiGenCatalog, setAiGenCatalog] = useState(null)
-  const [aiGenError, setAiGenError]     = useState(null)
-  const [aiGenStep, setAiGenStep]       = useState('input') // 'input'|'prompt'|'done'
+  // ── AI 생성: 모드 선택 + 공유 출력 단계 ────────────────
+  // aiMode:        null | 'quick' | 'deep'  (null = 모드 선택 카드)
+  // aiOutputStep:  null | 'prompt' | 'done' (모드와 무관한 출력 단계)
+  const [aiMode, setAiMode]                 = useState(null)
+  const [aiOutputStep, setAiOutputStep]     = useState(null)
+
+  // Quick 입력
+  const [quickInput, setQuickInput] = useState('')
+
+  // Deep 입력
+  const [deepData, setDeepData] = useState(DEEP_INITIAL)
+  const [deepStep, setDeepStep] = useState(1)
+
+  // 공유 출력 상태 (Quick/Deep 모두)
+  const [aiPrompt, setAiPrompt]     = useState('')
+  const [aiCopied, setAiCopied]     = useState(false)
+  const [aiPasted, setAiPasted]     = useState('')
+  const [aiCatalog, setAiCatalog]   = useState(null)
+  const [aiError, setAiError]       = useState(null)
 
   // 블럭 추천 (Step 2/3)
   const [userInput, setUserInput]           = useState('')
@@ -56,43 +98,82 @@ export default function MetaSmeltPhase({ onComplete }) {
   const [parsedData, setParsedData]         = useState(null)
 
   const activeCatalog =
-    catalogSource === 'builtin'     ? BUILTIN_CATALOG :
-    catalogSource === 'ai-generate' ? aiGenCatalog :
+    catalogSource?.startsWith('builtin:') ? getBuiltinCatalog(catalogSource.slice(8)) :
+    catalogSource === 'ai-generate'       ? aiCatalog :
     customCatalog
 
-  // ── ai-generate 핸들러 ────────────────────────────────────
-  const handleAiGenPrompt = useCallback(() => {
-    if (!aiGenDomain.trim()) return
-    setAiGenPrompt(buildCatalogGenerationPrompt(aiGenDomain))
-    setAiGenStep('prompt')
-    setAiGenError(null)
-  }, [aiGenDomain])
+  // ── AI 생성 핸들러 ────────────────────────────────────────
+  const updateDeep = useCallback((patch) => {
+    setDeepData(prev => ({ ...prev, ...patch }))
+  }, [])
 
-  const handleAiGenCopy = useCallback(() => {
-    navigator.clipboard.writeText(aiGenPrompt)
-    setAiGenCopied(true)
-    setTimeout(() => setAiGenCopied(false), 2000)
-  }, [aiGenPrompt])
+  const handleQuickGeneratePrompt = useCallback(() => {
+    if (!quickInput.trim()) return
+    setAiPrompt(buildQuickCatalogPrompt(quickInput))
+    setAiOutputStep('prompt')
+    setAiError(null)
+  }, [quickInput])
 
-  // 붙여넣기 자동 파싱 (400ms 디바운스)
+  const handleDeepGeneratePrompt = useCallback(() => {
+    const domainLabel = deepData.domain === 'other'
+      ? deepData.domainDetail
+      : DOMAIN_OPTIONS.find(o => o.value === deepData.domain)?.name || deepData.domain
+    const promptInput = { ...deepData, domainLabel }
+    setAiPrompt(buildDeepCatalogPrompt(promptInput))
+    setAiOutputStep('prompt')
+    setAiError(null)
+  }, [deepData])
+
+  const handleAiCopy = useCallback(() => {
+    navigator.clipboard.writeText(aiPrompt)
+    setAiCopied(true)
+    setTimeout(() => setAiCopied(false), 2000)
+  }, [aiPrompt])
+
+  const resetAiFlow = useCallback(() => {
+    setAiMode(null)
+    setAiOutputStep(null)
+    setAiPrompt('')
+    setAiPasted('')
+    setAiCatalog(null)
+    setAiError(null)
+    setQuickInput('')
+    setDeepData(DEEP_INITIAL)
+    setDeepStep(1)
+  }, [])
+
+  // 응답 자동 파싱 (Quick/Deep 공유, 400ms 디바운스)
   useEffect(() => {
-    if (catalogSource !== 'ai-generate' || !aiGenPasted.trim()) return
+    if (catalogSource !== 'ai-generate' || aiOutputStep !== 'prompt' || !aiPasted.trim()) return
     const t = setTimeout(() => {
       try {
-        const yml = extractYamlFromResponse(aiGenPasted)
+        const yml = extractYamlFromResponse(aiPasted)
         const parsed = parseCatalogYml(yml)
         const errors = validateCatalog(parsed)
-        if (errors.length) { setAiGenError(errors.join('\n')); setAiGenCatalog(null) }
-        else { setAiGenCatalog(parsed); setAiGenError(null); setAiGenStep('done') }
+        if (errors.length) {
+          setAiError(errors.join('\n'))
+          setAiCatalog(null)
+        } else {
+          setAiCatalog(parsed)
+          setAiError(null)
+          setAiOutputStep('done')
+        }
       } catch (e) {
-        setAiGenError(`파싱 오류: ${e.message}`)
-        setAiGenCatalog(null)
+        setAiError(`파싱 오류: ${e.message}`)
+        setAiCatalog(null)
       }
     }, 400)
     return () => clearTimeout(t)
-  }, [aiGenPasted, catalogSource])
+  }, [aiPasted, catalogSource, aiOutputStep])
 
-  // ── Step 1: 카탈로그 파싱 ────────────────────────────────
+  // 카탈로그 소스를 다른 것으로 바꾸면 AI 흐름 리셋
+  useEffect(() => {
+    if (catalogSource !== 'ai-generate') {
+      // 흐름은 보존, 카탈로그만 무효화
+    }
+  }, [catalogSource])
+
+  // ── Step 1: 업로드 카탈로그 파싱 ─────────────────────────
   const handleYmlChange = useCallback((text) => {
     setCustomYml(text)
     setCatalogError(null)
@@ -117,9 +198,9 @@ export default function MetaSmeltPhase({ onComplete }) {
   }, [handleYmlChange])
 
   const canProceedStep1 =
-    catalogSource === 'builtin' ||
+    catalogSource?.startsWith('builtin:') ||
     (catalogSource === 'upload' && customCatalog && !catalogError) ||
-    (catalogSource === 'ai-generate' && aiGenCatalog && !aiGenError)
+    (catalogSource === 'ai-generate' && aiCatalog && !aiError)
 
   // ── Step 2: 프롬프트 생성 ────────────────────────────────
   const handleGeneratePrompt = useCallback(() => {
@@ -165,6 +246,22 @@ export default function MetaSmeltPhase({ onComplete }) {
     onComplete({ catalog: activeCatalog, selectedIds, aiReasons, confidence, summary: parsedData.summary })
   }, [parsedData, activeCatalog, onComplete])
 
+  // ── Deep 단계 진행 가능 여부 ────────────────────────────
+  const survey = getSurveyForDomain(deepData.domain)
+  const workflowQuestions = getWorkflowQuestions(deepData.roles)
+
+  const canAdvanceDeep = (() => {
+    switch (deepStep) {
+      case 1: return deepData.idea.trim().length > 5
+      case 2: return deepData.domain && (deepData.domain !== 'other' || deepData.domainDetail.trim().length > 0)
+      case 3: return survey.deepDive.every(q => deepData.deepDive[q.name])
+      case 4: return deepData.roles.length > 0
+      case 5: return deepData.coreFeatures.trim().length > 0 && deepData.scale
+      case 6: return true
+      default: return false
+    }
+  })()
+
   return (
     <div className="meta-smelt-phase">
       {/* Wizard stepper */}
@@ -207,21 +304,54 @@ export default function MetaSmeltPhase({ onComplete }) {
                   <motion.div className="custom-catalog-area"
                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   >
-                    {aiGenStep === 'input' && (
+                    {/* (1) 모드 선택 ── Quick / Deep ───────────────────── */}
+                    {!aiMode && !aiOutputStep && (
                       <div className="ai-gen-section">
-                        <div className="ai-gen-label">어떤 도메인의 서비스를 만드나요?</div>
+                        <div className="ai-gen-label" style={{ marginBottom: 4 }}>AI 카탈로그 생성 모드를 선택하세요</div>
+                        <div className="catalog-source-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                          <motion.button
+                            className="catalog-source-card"
+                            onClick={() => setAiMode('quick')}
+                            whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}
+                          >
+                            <span className="src-icon">⚡</span>
+                            <span className="src-label">Quick</span>
+                            <span className="src-desc">자유 입력 한 번 (30초)<br/>AI가 도메인 지식으로 보완</span>
+                          </motion.button>
+                          <motion.button
+                            className="catalog-source-card"
+                            onClick={() => setAiMode('deep')}
+                            whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}
+                          >
+                            <span className="src-icon">🔬</span>
+                            <span className="src-label">Deep</span>
+                            <span className="src-desc">6단계 정밀 설문 (5분)<br/>결정 정보가 명확할수록 정확</span>
+                          </motion.button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* (2) Quick — 자유 입력 ─────────────────────────── */}
+                    {aiMode === 'quick' && !aiOutputStep && (
+                      <div className="ai-gen-section">
+                        <div className="ai-gen-label">
+                          <button className="step-back-btn" onClick={resetAiFlow} style={{ fontSize: 11, marginRight: 8 }}>
+                            ← 모드 변경
+                          </button>
+                          ⚡ Quick — 어떤 도메인의 서비스를 만드나요?
+                        </div>
                         <textarea
                           className="yml-textarea"
-                          style={{ minHeight: 100 }}
-                          placeholder={'예) 헬스케어 예약 플랫폼. 의사·환자·병원이 사용자. 진료 예약, 처방전 관리, 원격 진료가 핵심.'}
-                          value={aiGenDomain}
-                          onChange={e => setAiGenDomain(e.target.value)}
+                          style={{ minHeight: 120 }}
+                          placeholder={'예) 헬스케어 예약 플랫폼. 의사·환자·병원이 사용자.\n진료 예약, 처방전 관리, 원격 진료가 핵심.\n규모는 MVP, 결제는 토스페이.'}
+                          value={quickInput}
+                          onChange={e => setQuickInput(e.target.value)}
                           autoFocus
                         />
                         <div className="step-footer" style={{ marginTop: 0 }}>
                           <button
-                            className={`step-next-btn ${aiGenDomain.trim().length > 10 ? '' : 'disabled'}`}
-                            onClick={handleAiGenPrompt}
+                            className={`step-next-btn ${quickInput.trim().length > 10 ? '' : 'disabled'}`}
+                            onClick={handleQuickGeneratePrompt}
                             style={{ fontSize: 12 }}
                           >
                             카탈로그 생성 프롬프트 →
@@ -230,7 +360,246 @@ export default function MetaSmeltPhase({ onComplete }) {
                       </div>
                     )}
 
-                    {aiGenStep === 'prompt' && (
+                    {/* (3) Deep — 6단계 wizard ───────────────────────── */}
+                    {aiMode === 'deep' && !aiOutputStep && (
+                      <div className="ai-gen-section">
+                        <div className="ai-gen-label">
+                          <button className="step-back-btn" onClick={resetAiFlow} style={{ fontSize: 11, marginRight: 8 }}>
+                            ← 모드 변경
+                          </button>
+                          🔬 Deep — Step {deepStep}/6
+                        </div>
+
+                        {/* Deep Step 1: 아이디어 */}
+                        {deepStep === 1 && (
+                          <>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                              어떤 서비스를 만들고 싶으세요? 자유롭게 설명해주세요.
+                            </div>
+                            <textarea
+                              className="yml-textarea"
+                              style={{ minHeight: 80 }}
+                              placeholder={'예) 헬스케어 예약 플랫폼. 환자가 의사를 검색하고 예약하는 서비스.'}
+                              value={deepData.idea}
+                              onChange={e => updateDeep({ idea: e.target.value })}
+                              autoFocus
+                            />
+                          </>
+                        )}
+
+                        {/* Deep Step 2: 업종 */}
+                        {deepStep === 2 && (
+                          <>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                              가장 가까운 업종을 선택하세요.
+                            </div>
+                            <select
+                              className="yml-textarea"
+                              style={{ minHeight: 38, padding: 8 }}
+                              value={deepData.domain}
+                              onChange={e => updateDeep({ domain: e.target.value, deepDive: {} })}
+                            >
+                              {DOMAIN_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.name}</option>
+                              ))}
+                            </select>
+                            {deepData.domain === 'other' && (
+                              <input
+                                type="text"
+                                className="yml-textarea"
+                                style={{ minHeight: 38, padding: 8, marginTop: 8 }}
+                                placeholder="어떤 업종인지 설명해주세요"
+                                value={deepData.domainDetail}
+                                onChange={e => updateDeep({ domainDetail: e.target.value })}
+                              />
+                            )}
+                          </>
+                        )}
+
+                        {/* Deep Step 3: 사업 구조 */}
+                        {deepStep === 3 && (
+                          <>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                              업종에 맞는 핵심 질문입니다. 정확한 카탈로그 설계에 도움이 됩니다.
+                            </div>
+                            {survey.deepDive.map(q => (
+                              <div key={q.name} style={{ marginBottom: 12 }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{q.message}</div>
+                                {q.type === 'list' ? (
+                                  <select
+                                    className="yml-textarea"
+                                    style={{ minHeight: 38, padding: 8 }}
+                                    value={deepData.deepDive[q.name] || ''}
+                                    onChange={e => updateDeep({ deepDive: { ...deepData.deepDive, [q.name]: e.target.value } })}
+                                  >
+                                    <option value="">선택하세요...</option>
+                                    {q.choices.map(c => (
+                                      <option key={c.value} value={c.value}>{c.name}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    className="yml-textarea"
+                                    style={{ minHeight: 38, padding: 8 }}
+                                    value={deepData.deepDive[q.name] || ''}
+                                    onChange={e => updateDeep({ deepDive: { ...deepData.deepDive, [q.name]: e.target.value } })}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </>
+                        )}
+
+                        {/* Deep Step 4: 역할 + 워크플로우 */}
+                        {deepStep === 4 && (
+                          <>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                              서비스에 어떤 역할의 사용자가 있나요? (복수 선택)
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {ROLE_OPTIONS.map(opt => {
+                                const checked = deepData.roles.includes(opt.value)
+                                return (
+                                  <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => {
+                                        const next = checked
+                                          ? deepData.roles.filter(r => r !== opt.value)
+                                          : [...deepData.roles, opt.value]
+                                        updateDeep({ roles: next })
+                                      }}
+                                    />
+                                    <span>{opt.name}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            {workflowQuestions.length > 0 && (
+                              <div style={{ marginTop: 14 }}>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                                  각 역할의 핵심 행동을 알려주세요 (선택, 미입력 시 AI가 추론)
+                                </div>
+                                {workflowQuestions.map(wq => (
+                                  <div key={wq.role} style={{ marginBottom: 8 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
+                                      [{wq.roleName}] {wq.question}
+                                    </div>
+                                    <input
+                                      type="text"
+                                      className="yml-textarea"
+                                      style={{ minHeight: 32, padding: 6, fontSize: 12 }}
+                                      value={deepData.workflows[wq.role] || ''}
+                                      onChange={e => updateDeep({ workflows: { ...deepData.workflows, [wq.role]: e.target.value } })}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Deep Step 5: 핵심 기능 + 규모 */}
+                        {deepStep === 5 && (
+                          <>
+                            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                              반드시 있어야 하는 핵심 기능 (3~5개, 쉼표로 구분)
+                            </div>
+                            <textarea
+                              className="yml-textarea"
+                              style={{ minHeight: 60 }}
+                              placeholder="예: 회원가입, 상품 검색, 결제, 주문 관리, 배송 추적"
+                              value={deepData.coreFeatures}
+                              onChange={e => updateDeep({ coreFeatures: e.target.value })}
+                            />
+                            <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>
+                              예상 서비스 규모
+                            </div>
+                            <select
+                              className="yml-textarea"
+                              style={{ minHeight: 38, padding: 8 }}
+                              value={deepData.scale}
+                              onChange={e => updateDeep({ scale: e.target.value })}
+                            >
+                              {SCALE_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.name}</option>
+                              ))}
+                            </select>
+                          </>
+                        )}
+
+                        {/* Deep Step 6: 제약사항 + 요약 */}
+                        {deepStep === 6 && (
+                          <>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                              해당하는 제약사항을 체크하세요 (없으면 비워두세요).
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                              {survey.constraints.map(c => {
+                                const checked = deepData.constraints.includes(c.value)
+                                return (
+                                  <label key={c.value} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => {
+                                        const next = checked
+                                          ? deepData.constraints.filter(v => v !== c.value)
+                                          : [...deepData.constraints, c.value]
+                                        updateDeep({ constraints: next })
+                                      }}
+                                    />
+                                    <span>{c.name}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            <div style={{ fontSize: 11, padding: 10, borderRadius: 6, background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                              <strong>입력 요약</strong><br/>
+                              아이디어: {deepData.idea.slice(0, 60)}{deepData.idea.length > 60 ? '...' : ''}<br/>
+                              업종: {deepData.domain === 'other' ? deepData.domainDetail : DOMAIN_OPTIONS.find(o => o.value === deepData.domain)?.name}<br/>
+                              역할: {deepData.roles.length}개 · 핵심기능: {deepData.coreFeatures.split(',').filter(Boolean).length}개 · 제약사항: {deepData.constraints.length}개
+                            </div>
+                          </>
+                        )}
+
+                        {/* Deep wizard 네비게이션 */}
+                        <div className="step-footer" style={{ marginTop: 12, gap: 8 }}>
+                          {deepStep > 1 && (
+                            <button
+                              className="step-back-btn"
+                              onClick={() => setDeepStep(s => s - 1)}
+                              style={{ fontSize: 11 }}
+                            >
+                              ← 이전
+                            </button>
+                          )}
+                          {deepStep < 6 && (
+                            <button
+                              className={`step-next-btn ${canAdvanceDeep ? '' : 'disabled'}`}
+                              onClick={() => canAdvanceDeep && setDeepStep(s => s + 1)}
+                              style={{ fontSize: 12 }}
+                            >
+                              다음 →
+                            </button>
+                          )}
+                          {deepStep === 6 && (
+                            <button
+                              className="step-next-btn"
+                              onClick={handleDeepGeneratePrompt}
+                              style={{ fontSize: 12 }}
+                            >
+                              카탈로그 생성 프롬프트 →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* (4) 프롬프트 + 응답 붙여넣기 (Quick/Deep 공유) ── */}
+                    {aiOutputStep === 'prompt' && (
                       <div className="ai-gen-section">
                         <div className="ai-gen-prompt-row">
                           <div className="ai-gen-col">
@@ -239,15 +608,15 @@ export default function MetaSmeltPhase({ onComplete }) {
                             </div>
                             <div className="prompt-box" style={{ minHeight: 200 }}>
                               <div className="prompt-box-header">
-                                <span className="prompt-box-title">catalog 생성 프롬프트</span>
+                                <span className="prompt-box-title">catalog 생성 프롬프트 ({aiMode === 'quick' ? 'Quick' : 'Deep'})</span>
                                 <button
-                                  className={`copy-prompt-btn ${aiGenCopied ? 'copied' : ''}`}
-                                  onClick={handleAiGenCopy}
+                                  className={`copy-prompt-btn ${aiCopied ? 'copied' : ''}`}
+                                  onClick={handleAiCopy}
                                 >
-                                  {aiGenCopied ? '✓ 복사됨' : '복사'}
+                                  {aiCopied ? '✓ 복사됨' : '복사'}
                                 </button>
                               </div>
-                              <pre className="prompt-content">{aiGenPrompt}</pre>
+                              <pre className="prompt-content">{aiPrompt}</pre>
                             </div>
                             <div className="claude-code-hint">
                               <span className="hint-icon">💡</span>
@@ -262,41 +631,46 @@ export default function MetaSmeltPhase({ onComplete }) {
                               className="result-paste-area"
                               style={{ minHeight: 200 }}
                               placeholder={'Claude가 생성한 catalog.yml을\n여기에 붙여넣으세요.\n\n자동으로 파싱됩니다.'}
-                              value={aiGenPasted}
-                              onChange={e => setAiGenPasted(e.target.value)}
+                              value={aiPasted}
+                              onChange={e => setAiPasted(e.target.value)}
                             />
-                            {aiGenError && (
-                              <div className="parse-error">⚠ {aiGenError}</div>
+                            {aiError && (
+                              <div className="parse-error">⚠ {aiError}</div>
                             )}
                           </div>
                         </div>
                         <button
                           className="step-back-btn"
-                          onClick={() => { setAiGenStep('input'); setAiGenPasted(''); setAiGenError(null) }}
+                          onClick={() => {
+                            setAiOutputStep(null)
+                            setAiPasted('')
+                            setAiError(null)
+                          }}
                           style={{ alignSelf: 'flex-start', fontSize: 11 }}
                         >
-                          ← 도메인 설명 수정
+                          ← {aiMode === 'quick' ? '입력 수정' : 'Deep 설문으로 돌아가기'}
                         </button>
                       </div>
                     )}
 
-                    {aiGenStep === 'done' && aiGenCatalog && (
+                    {/* (5) 완료 ── */}
+                    {aiOutputStep === 'done' && aiCatalog && (
                       <motion.div
                         className="catalog-ok ai-gen-done"
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                       >
                         <div className="ai-gen-done-header">
-                          ✓ 카탈로그 생성 완료
+                          ✓ 카탈로그 생성 완료 ({aiMode === 'quick' ? 'Quick' : 'Deep'} 모드)
                         </div>
                         <div className="ai-gen-done-stats">
-                          <span><strong>{aiGenCatalog.name}</strong></span>
-                          <span className="ai-gen-stat">{aiGenCatalog.blocks.length}개 블럭</span>
-                          <span className="ai-gen-stat">{aiGenCatalog.bundles.length}개 번들</span>
-                          <span className="ai-gen-stat">{aiGenCatalog.worlds.length - 1}개 월드</span>
+                          <span><strong>{aiCatalog.name}</strong></span>
+                          <span className="ai-gen-stat">{aiCatalog.blocks.length}개 블럭</span>
+                          <span className="ai-gen-stat">{aiCatalog.bundles.length}개 번들</span>
+                          <span className="ai-gen-stat">{aiCatalog.worlds.length - 1}개 월드</span>
                         </div>
                         <button
                           className="step-back-btn"
-                          onClick={() => { setAiGenStep('input'); setAiGenPasted(''); setAiGenCatalog(null) }}
+                          onClick={resetAiFlow}
                           style={{ fontSize: 11, marginTop: 6, alignSelf: 'flex-start' }}
                         >
                           다시 생성
@@ -338,7 +712,7 @@ export default function MetaSmeltPhase({ onComplete }) {
                 )}
               </AnimatePresence>
 
-              {catalogSource === 'builtin' && (
+              {catalogSource?.startsWith('builtin:') && activeCatalog && (
                 <div className="catalog-summary">
                   ✓ {activeCatalog.name} 카탈로그 — {activeCatalog.blocks.length}개 블럭, {activeCatalog.bundles.length}개 번들
                 </div>
