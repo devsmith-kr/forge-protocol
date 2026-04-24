@@ -5,6 +5,73 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)를 따르며,
 [유의적 버전 관리(Semantic Versioning)](https://semver.org/spec/v2.0.0.html)를 준수합니다.
 
+## [0.4.0] - 2026-04-23
+
+실사용(채용공고 통합 검색 서비스 종단 흐름) 에서 발견된 생성 품질 결함을 제거하고,
+도메인 불가지론·검증 루프·두 번째 빌트인 템플릿을 도입. 본격적인 OSS 공개 직전의
+품질 바닥 다지기.
+
+### 추가
+
+- **`forge verify` 명령** (Phase 6) — `.forge/generated/backend/` 의 Java 코드가 실제
+  `compileJava` + `test` 를 통과하는지 확인. 결과는 `.forge/verify-report.json` 에
+  구조화 기록, 실패 시 상위 10건 콘솔 출력 + exit code 1
+- **Job Aggregator 빌트인 템플릿** (`templates/job-aggregator/catalog.yml`) — 채용공고
+  통합 검색 도메인 17개 블럭. Commerce 외 두 번째 공식 템플릿으로, CLI meta-smelt
+  선택지와 Web UI MetaSmeltPhase 카드에 편입
+- **`shared/api-inference.js`** — 블럭 id → REST 경로·엔드포인트 추론 공용 모듈
+  (CLI/Web 단일 소스). `pluralize` 라이브러리로 영어 복수형 정확화
+- **`shared/concerns.js`** — 도메인 관심사 태그 시스템 (payment, auth, concurrency,
+  crawling, search, realtime, file-upload, notification, pii). Phase 2/4/5 프롬프트를
+  선택 블럭의 concerns 합집합에 맞춰 조건부 조립
+- **`shared/architecture-style.js`** — `pickArchitectureStyle` 가드레일. 팀 규모·
+  총 공수·블럭/서비스 수 기반으로 modular-monolith vs MSA 자동 판단
+- **`shared/scenario-patterns.js`** — 테스트 시나리오 생성 엔진 (11 패턴 룰 +
+  3 concerns 룰). 블럭 id·tech_desc 키워드 매칭으로 도메인 고유 시나리오 생성,
+  과다 생성은 6개로 cap
+- **카탈로그 스키마 강화** — `api_style` (resource/query/internal), `concerns` 배열,
+  `icon` 필드. 참조 무결성(bundles.world_id, blocks.bundle_id, dependencies.source/target)
+  을 zod `superRefine` 으로 검증, 실패 시 한국어 메시지
+- **`scripts/verify-p0.mjs`** — 생성 품질 회귀 스모크 테스트 (19개 체크)
+
+### 변경
+
+- **API 계약 생성기 재작성** — 블럭 id 에 `+ "s"` 로 단순 복수화하던 로직을
+  `pluralize` 라이브러리로 교체. `saved-jobs`, `search-history`, `product-category`
+  같은 영어 불규칙 복수형 올바르게 처리. `api_style: internal` 블럭
+  (normalizer / indexer / crawler 등) 은 REST 엔드포인트에서 자동 제외
+- **Phase 2/4/5 프롬프트에서 결제 하드코딩 제거** — "결제/인증/동시성 처리는 반드시…"
+  와 "결제 테스트는 PG사 웹훅 Mock 서버 포함" 같은 무조건적 지시를 제거.
+  선택된 블럭의 concerns 태그에 해당하는 섹션만 삽입 (커머스는 기존 동작 유지)
+- **아키텍처 스타일 자동 추천 가드레일** — 58일/1인 프로젝트에도 MSA 가
+  추천되던 결함 해결. 2인 이하 + 200일 미만은 무조건 modular-monolith, 5인+ 또는
+  40블럭+ 만 MSA. ADR-000 에 `transition_triggers` 자동 기록
+- **테스트 시나리오 생성 데이터 구동화** — 기존 하드코딩된 `if (id.includes('payment'))`
+  사슬을 `PATTERN_RULES` 테이블로 교체. 채용·컨텐츠 등 비커머스 도메인에도 적용
+- **`priority` 필드 enum 제한** — `required | optional` 만 허용 (오탈자
+  "mandatory" 거부)
+- **`validateYaml` 한국어 에러** — zod 영문 메시지를 한국어로 번역 (`Unrecognized
+  key(s)` → `알 수 없는 필드`), `strict=true` 옵션으로 실패 시 예외 throw
+- **Web UI 다중 빌트인 템플릿 지원** — `BUILTIN_CATALOG` 단일 변수 → `BUILTIN_TEMPLATES`
+  배열 + `getBuiltinCatalog(id)`. Vite `?raw` import 로 YAML 런타임 파싱
+- **`package.json` `files`** — `templates/commerce/` → `templates/` 전체 포함
+  (신규 템플릿 자동 배포)
+
+### 수정
+
+- **`DuplicateDetector` 블로킹 로직 결함** (실사용 검수에서 발견) — 기존 로직이
+  `findByClusterId(-1)` 로 무조건 빈 결과를 반환해 중복 제거가 동작하지 않던
+  부분 수정. (검수 보고서 `forge-report-20260423.md` P0-2.1 항목)
+- **CI node 매트릭스에 Windows/macOS 추가** (테스트 잡)
+- **Commerce 카탈로그 21블럭에 `api_style` + `concerns` 어노테이션** 일괄 부여
+
+### 내부
+
+- 테스트 89개 추가 (api-inference 19, concerns 11, architecture-style 8,
+  schemas-strict 10, templates 10, scenario-patterns 12, verify 6,
+  기존 업데이트 13). 전체 232개 통과
+- `lib/core/ui.js` `PHASES` 에 verify 추가, `STATE_ORDER` 연동
+
 ## [0.3.0] - 2026-04-24
 
 첫 npm 공개 릴리스. CLI 코드 생성(`forge emit`)과 CLI/Web 공용 생성기 모듈을 도입했습니다.

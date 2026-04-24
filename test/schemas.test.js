@@ -155,11 +155,15 @@ describe('TestScenariosSchema', () => {
 // ═════════════════════════════════════════════════════════
 describe('CatalogSchema', () => {
   it('유효한 catalog 통과', () => {
+    // P0-4 참조 무결성 적용: 기존 고스트 의존성 (order→payment) 을 실제 블럭으로 교체
     const data = {
       worlds: [{ id: 'seller', title: '판매자' }],
       bundles: [{ id: 'product-mgmt', world_id: 'seller' }],
-      blocks: [{ id: 'product-register', bundle_id: 'product-mgmt', name: '상품 등록' }],
-      dependencies: [{ source: 'order', target: 'payment', type: 'requires' }],
+      blocks: [
+        { id: 'product-register', bundle_id: 'product-mgmt', name: '상품 등록' },
+        { id: 'product-edit',     bundle_id: 'product-mgmt', name: '상품 수정' },
+      ],
+      dependencies: [{ source: 'product-edit', target: 'product-register', type: 'requires' }],
     };
     expect(CatalogSchema.safeParse(data).success).toBe(true);
   });

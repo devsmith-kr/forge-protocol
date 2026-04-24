@@ -34,6 +34,30 @@ export {
 export { generateOpenApiYaml } from './openapi.js';
 
 export {
+  inferEndpoints as inferEndpointsFromCatalog,
+  inferApiStyle,
+  toResourcePath,
+} from './api-inference.js';
+
+export {
+  KNOWN_CONCERNS,
+  concernsOf,
+  collectConcerns,
+  buildConcernFragments,
+} from './concerns.js';
+
+export {
+  ARCHITECTURE_STYLES,
+  pickArchitectureStyle,
+} from './architecture-style.js';
+
+export {
+  PATTERN_RULES,
+  CONCERN_SCENARIOS,
+  buildScenariosForBlock,
+} from './scenario-patterns.js';
+
+export {
   generateController,
   generateEntity,
   generateRepository,

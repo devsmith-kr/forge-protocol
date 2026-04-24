@@ -13,27 +13,32 @@
 ## 전체 흐름
 
 ```
-forge init  →  forge meta-smelt  →  forge smelt  →  forge shape  →  forge forge  →  forge temper  →  forge inspect
+forge init → forge meta-smelt → forge smelt → forge shape → forge forge → forge temper → forge inspect → forge verify
 ```
 
-## 6단계 프로세스
+## 7단계 프로세스
 
 | Phase | 이름 | 하는 일 | 출력물 |
 |-------|------|---------|--------|
 | 0 | **Meta-Smelt** (발굴) | 카탈로그 확정 — 빌트인 선택 or AI로 커스텀 생성 | .forge/catalog/catalog.yml |
 | 1 | **Smelt** (제련) | 블럭 선택, 의존성 해결, 의도 추출 | intent.yml, selected-blocks.yml |
-| 2 | **Shape** (성형) | 아키텍처 결정, ADR 기록 | architecture.yml |
-| 3 | **Forge** (단조) | API 계약 우선 정의 후 코드 생성 | contracts.yml, src/ |
-| 4 | **Temper** (담금질) | Given-When-Then 테스트 생성 | test/ |
-| 5 | **Inspect** (검수) | 보안/성능/운영/확장성 멀티 리뷰 | forge-report.md |
+| 2 | **Shape** (성형) | 아키텍처 결정, ADR 기록 (team_size · 공수 기반 가드레일) | architecture.yml |
+| 3 | **Forge** (단조) | API 계약 우선 정의 후 코드 생성 (api_style: resource/query/internal) | contracts.yml, src/ |
+| 4 | **Temper** (담금질) | Given-When-Then 테스트 생성 (키워드·concerns 기반 시나리오) | test/ |
+| 5 | **Inspect** (검수) | 보안/성능/운영/확장성 멀티 리뷰 (도메인 concerns 조건부) | forge-report.md |
+| 6 | **Verify** (검증) | emit 결과물 컴파일·테스트 통과 여부 확인 | verify-report.json |
 
 > **Meta-Smelt 역할**: 빌트인 템플릿(commerce)을 선택하거나, 내 도메인을 설명해 Claude가 catalog.yml을 AI로 생성한다. Smelt 이전의 필수 준비 단계.
+>
+> AI 모드는 두 가지로 분기된다 (CLI/Web 동일):
+> - **Quick** (30초) — 자유 입력 한 번. AI가 누락 정보를 도메인 지식으로 보완.
+> - **Deep** (5분) — 6단계 정밀 설문 (업종·사업구조·역할·핵심기능·규모·제약사항).
 
 줌 레벨: World → Bundle → Block → TechSpec. 어떤 순간에도 사용자 앞에 5개 이하 선택지.
 
 ---
 
-## CLI 현황 (v0.3.0) — Node.js ESM, commander/inquirer/chalk/js-yaml/ora/zod
+## CLI 현황 (v0.4.0) — Node.js ESM, commander/inquirer/chalk/js-yaml/ora/zod/pluralize
 
 ### 파일 구조
 ```
@@ -45,12 +50,13 @@ lib/
     errors.js             # 표준 에러/예외 클래스
     version.js            # CLI 버전 상수
   init.js                 # forge init — .forge/ 디렉토리 구조만 생성
-  meta-smelt.js           # forge meta-smelt — 카탈로그 확정 (빌트인 선택 or AI 생성)
+  meta-smelt.js           # forge meta-smelt — 카탈로그 확정 (빌트인 commerce/job-aggregator/AI)
   smelt.js                # forge smelt — 대화형 블럭 선택 (draft 저장/복원)
-  shape.js                # forge shape — 아키텍처 결정
-  build.js                # forge forge — API 계약 추론 (파일명은 build.js 유지)
-  temper.js               # forge temper — GWT 시나리오 생성
-  inspect.js              # forge inspect — 멀티 관점 검수
+  shape.js                # forge shape — 아키텍처 결정 (team_size + 공수 가드레일)
+  build.js                # forge forge — API 계약 추론 (api_style 분기, 파일명은 build.js)
+  temper.js               # forge temper — GWT 시나리오 생성 (scenario-patterns 위임)
+  inspect.js              # forge inspect — 멀티 관점 검수 (concerns 조건부)
+  verify.js               # forge verify — emit 결과물 컴파일·테스트 검증 (Phase 6)
   emit.js                 # forge emit — contracts/tests → 실제 파일 기록
   emit/generators.js      # CLI emit용 내부 생성기 래퍼
   assemble.js             # forge assemble — 플랜 → 블럭 자동 조립
@@ -62,21 +68,29 @@ lib/
   decisions.js            # Phase별 결정 로직(Shape/Build/Temper/Inspect 공용)
   schemas.js              # zod 스키마(intent/contracts/scenarios 등)
   constants.js            # CLI 전역 상수
-shared/                   # CLI/Web 공용 코드 생성기
+shared/                   # CLI/Web 공용 모듈
+  api-inference.js        # 블럭 → REST 엔드포인트 (pluralize + api_style) [P0-1]
+  concerns.js             # 도메인 관심사 태그 → 프롬프트 조건부 섹션 [P0-2]
+  architecture-style.js   # pickArchitectureStyle 가드레일 [P0-3]
+  scenario-patterns.js    # 테스트 시나리오 패턴 테이블 (11 규칙) [P1-1]
   openapi.js              # OpenAPI 3.1 YAML 생성
   java-api.js             # Controller/DTO 스켈레톤
   java-service.js         # Service/Repository/Entity 스켈레톤
   java-test.js            # JUnit5 테스트 클래스
   names.js                # 식별자/패키지명 규칙
   project.js              # pom.xml / build.gradle / application.yml
+  domain-surveys.js       # Meta-Smelt Deep 모드용 도메인별 설문 (CLI/Web 공유)
   index.js                # 퍼블릭 진입점
 templates/
-  commerce/catalog.yml    # 커머스 블럭 21개 + 의존성 19개 (World 6개)
+  commerce/catalog.yml           # 커머스 블럭 21개 (api_style + concerns 어노테이션)
+  job-aggregator/catalog.yml     # 채용공고 통합 블럭 17개 [P1-3]
+scripts/
+  verify-p0.mjs           # P0 생성 품질 회귀 smoke test (CI 에서도 실행)
 ```
 
 ### 구현 완료 ✓
 - `forge init` — .forge/ 디렉토리 구조 생성, 다음 단계: meta-smelt 안내
-- `forge meta-smelt` — Step 0: 빌트인 선택(즉시 catalog 복사) or AI 커스텀 생성(6단계 설문 → 프롬프트)
+- `forge meta-smelt` — Step 0: 빌트인 선택(즉시 catalog 복사) or AI 커스텀 생성. AI 모드는 Quick(자유 입력 1번) / Deep(6단계 정밀 설문) 중 선택. `--quick` / `--deep` 플래그로 모드 선택 단계 스킵 가능
 - `forge smelt` — 블럭 선택→의존성 해결→결정사항→W0 준비물→intent.yml (World별 draft 저장/복원)
 - `forge assemble` — 플랜 파일(md/yml) → 블럭 자동 조립 → roadmap.yml + intent.yml
 - `forge shape` — 블럭 특성 자동 감지 + 기술 스택 결정 → architecture.yml + architecture-prompt.md
@@ -84,6 +98,7 @@ templates/
 - `forge temper` — 블럭별 Given-When-Then 시나리오 생성 → test-scenarios.yml + temper-prompt.md
 - `forge inspect` — 보안/성능/운영/확장성 자동 감지 → forge-report.md + inspect-prompt.md
 - `forge emit` — `contracts.yml` + `test-scenarios.yml` → `.forge/generated/backend/` 실제 파일 기록 (`--target backend|tests|all`, `--build gradle|maven`)
+- `forge verify` — `.forge/generated/backend/` 의 Java 코드가 실제 컴파일·테스트 통과하는지 확인 → verify-report.json [P1-2]
 - `forge status` — 리치 대시보드 (phaseBar + 진행도 + 파일 현황)
 - 인터랙티브 메뉴 — 인자 없이 `forge` 실행 시 Phase 선택 메뉴
 - `shared/` 모듈 — CLI/Web 코드 생성기 단일 소스로 통합
@@ -112,7 +127,7 @@ web/
     locales/                    # ko / en 번역 리소스
     context/                    # React Context (프로젝트 상태 등)
     phases/
-      MetaSmeltPhase.jsx        # Phase 0: 카탈로그 선택(빌트인/업로드/AI) + 요구사항
+      MetaSmeltPhase.jsx        # Phase 0: 카탈로그 선택(빌트인/업로드/AI Quick/AI Deep) + 요구사항
       SmeltPhase.jsx            # Phase 1: 블럭 선택 + 의존성 시각화
       ShapePhase.jsx            # Phase 2: 아키텍처 결정 + 프롬프트 복사
       BuildPhase.jsx            # Phase 3: API 계약 + 코드 생성 + Bridge 실행
@@ -143,7 +158,7 @@ cd web && npm run bridge        # Bridge 서버 (Claude Code / Claude API 실행
 ### 구현 완료 ✓
 - Phase 0~5 전체 UI 구현 (MetaSmelt → Smelt → Shape → Build → Temper → Inspect)
 - Phase 잠금/해금 제어 (순서 강제, 뒤로는 자유)
-- MetaSmelt: 빌트인(commerce) / YAML 업로드 / AI 생성 3가지 카탈로그 모드
+- MetaSmelt: 빌트인(commerce) / YAML 업로드 / AI 생성 3가지 카탈로그 모드. AI 모드는 다시 Quick(자유 입력 한 번) / Deep(6단계 wizard sub-steps)으로 분기.
 - Smelt: AI 추천 이유 표시, 의존성 시각화, SelectionPanel
 - Shape/Build/Temper/Inspect: generators.js 기반 자동 생성 + Claude 프롬프트 복사
 - GuidePanel: Phase별 사용 가이드 슬라이드 패널
@@ -188,11 +203,24 @@ cd web && npm run bridge        # Bridge 서버 (Claude Code / Claude API 실행
 
 ## 다음 할 일 (우선순위순)
 
-1. **npm 최초 배포** — package.json v0.3.0은 준비됐으나 아직 registry에 publish 안 됨. `npm publish` 실행 + npm 뱃지/설치 안내 검증.
-2. **데모 자산 추가** — README가 "스크린샷과 호스팅 데모는 프로젝트 GitHub 저장소에서 확인할 수 있습니다"라고 약속하지만 실제 자산은 아직 없음. 스크린샷/배포 URL(예: Vercel)/짧은 GIF 추가.
-3. **CLI 단위 테스트 확충** — vitest 인프라는 깔려있으나 `forge emit` / `forge shape` 회귀 테스트 공백. 특히 `shared/` 생성기 스냅샷 테스트 필요.
-4. **두 번째 빌트인 템플릿** — commerce 외 도메인(예: SaaS/채용/교육) 카탈로그 추가 → 범용성 증명.
-5. **catalog 스키마 검증 강화** — `lib/schemas.js` zod 스키마로 사용자 업로드 YAML 엄격 검증 + 오류 위치 표시.
+1. **npm 최초 배포** — v0.4.0 완비. `npm publish` 실행 + npm 뱃지 삽입. 2FA 필요, dry-run 검증 후 publish.
+2. **데모 자산 추가** — Vercel 호스팅 + asciinema 60초 GIF + 스크린샷 4장 (Phase 1/2/3/5 UI). README 상단 Live Demo 버튼.
+3. **CLI 단위 테스트 확충 (진행 중)** — `shared/` 신규 모듈 테스트는 v0.4.0에서 추가 완료 (api-inference/concerns/architecture-style/scenario-patterns/verify). `forge emit` 스냅샷 테스트는 여전히 공백.
+4. **세 번째 빌트인 템플릿** — commerce + job-aggregator 로 범용성 증명 완료. SaaS 또는 Content 도메인 추가로 정착 유도.
+5. **추가 개선 (v0.5.0+)**
+   - `forge verify --repair` — 실패 리포트를 Phase 3/4 프롬프트 재생성 입력으로
+   - Web UI 에 verify 연동 (Claude Bridge 통해 실행)
+   - catalog 오탈자 에러 메시지에 YAML 라인 번호 표시 (js-yaml position tracking)
+
+### v0.4.0 완료 (2026-04-23, P0+P1)
+
+- **P0-1** API 계약 생성기 수정 — pluralize + api_style (internal/query/resource)
+- **P0-2** 결제 하드코딩 제거 — concerns 태그 기반 조건부 프롬프트
+- **P0-3** 아키텍처 스타일 가드레일 — team_size/공수 기반 자동 분기
+- **P0-4** 카탈로그 스키마 strict — 오탈자·참조 무결성·한국어 에러
+- **P1-1** 테스트 시나리오 심화 — 11 패턴 + 3 concerns 시나리오 테이블
+- **P1-2** `forge verify` 신설 — gradle 컴파일·테스트 자동 검증
+- **P1-3** job-aggregator 빌트인 템플릿 — 17블럭 채용공고 도메인
 
 > 상세 스펙(데이터 모델, 커머스 카탈로그 전체 구조): `docs/spec.md` 참고
 > 구현 현황 전체: `docs/implementation-status.md`

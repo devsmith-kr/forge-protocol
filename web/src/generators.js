@@ -2,7 +2,7 @@
 // 설계 원칙: catalog.yml 메타데이터(worlds/bundles/blocks)를 직접 읽어 도메인 무관 동작
 //           catalogData 없을 때만 레거시 커머스 하드코딩 모드로 폴백
 
-import { parseBody, parseResp, reqDtoName, respDtoName, javaType } from '../../shared/index.js'
+import { parseBody, parseResp, reqDtoName, respDtoName, javaType, inferApiStyle, toResourcePath, pickArchitectureStyle } from '../../shared/index.js'
 
 const PALETTE = ['orange', 'blue', 'emerald', 'violet', 'amber', 'rose']
 
@@ -53,10 +53,16 @@ function inferInfra(blocks) {
   return infra
 }
 
-function buildDecisions(services, allBlocks) {
+function buildDecisions(services, allBlocks, catalogData) {
   const src = allBlocks.map(b => b.tech_desc || '').join(' ')
+  const style = pickArchitectureStyle({
+    blockCount: allBlocks.length,
+    serviceCount: services.length,
+    totalEffortDays: allBlocks.reduce((s, b) => s + (b.effort_days ?? 0), 0),
+    teamSize: catalogData?.team_size ?? 1,
+  })
   const decisions = [
-    { title: '아키텍처 스타일', choice: services.length >= 4 ? 'MSA (서비스 분리)' : '모듈러 모놀리스', reason: '초기 운영 복잡도 최소화 → 점진적 분리', adr: 'ADR-001' },
+    { title: '아키텍처 스타일', choice: style.choice, reason: style.reason, adr: 'ADR-001' },
     { title: 'API 스타일',     choice: 'REST + OpenAPI 3.1',                      reason: '생태계 호환성, Swagger 문서 자동화',            adr: 'ADR-002' },
     { title: '인증 방식',       choice: 'JWT (RS256) + Refresh Token Rotation',    reason: '무상태 서버, 보안 강화',                        adr: 'ADR-003' },
   ]
@@ -98,7 +104,7 @@ function buildArchFromCatalog(ids, catalog) {
     })
 
   const infra = inferInfra(selectedBlocks)
-  const decisions = buildDecisions(services, selectedBlocks)
+  const decisions = buildDecisions(services, selectedBlocks, catalog)
 
   const layers = [
     { id: 'client',  name: 'Client Layer',         icon: '🖥️',  color: '#818cf8', items: ['React 18 + Vite', 'React Query', 'TypeScript', 'Tailwind CSS'] },
@@ -116,15 +122,17 @@ function inferEndpoints(block) {
   const id = block.id
   const name = block.name
   const tech = block.tech_desc || ''
+  const style = inferApiStyle(block)
 
-  // path: 블럭 ID → REST 리소스 경로 추론
-  const segments = id.split('-')
-  const resource = segments.slice(-1)[0] === 'manage' || segments.slice(-1)[0] === 'mgmt'
-    ? segments.slice(0, -1).join('-')
-    : id
-  const basePath = `/api/v1/${resource}s`
+  // api_style=internal: REST 엔드포인트 없음 (스케줄러/정규화기/인덱서 등)
+  if (style === 'internal') return []
 
-  // 시맨틱 패턴 감지
+  // 경로: pluralize 라이브러리 기반 정확한 복수형 처리
+  // saved-jobs → /api/v1/saved-jobs (이미 복수, 중복 s 안 붙음)
+  // search-history → /api/v1/search-histories
+  const basePath = `/api/v1${toResourcePath(id)}`
+
+  // 시맨틱 패턴 감지 (우선순위: 특수 패턴 → style → CRUD)
   const is = (pat) => pat.test(id + ' ' + name + ' ' + tech)
 
   if (is(/auth|login|signup|register/i)) return [
@@ -156,26 +164,24 @@ function inferEndpoints(block) {
     { method: 'PATCH', path: `${basePath}/{id}/status`,  summary: '심사 상태 변경',     body: '{ status }',               response: '200' },
   ]
 
-  if (is(/search|검색/i)) return [
-    { method: 'GET', path: basePath, summary: `${name}`, body: '?q=&filters=&sort=&page=', response: '200 { items[], total, facets }' },
-  ]
-
-  if (is(/status|현황|history|이력/i)) return [
-    { method: 'GET', path: basePath,       summary: `${name} 목록`,  body: '?page=&size=', response: '200 { items[] }' },
-    { method: 'GET', path: `${basePath}/{id}`, summary: `${name} 상세`, body: '—',        response: '200 Entity' },
-  ]
-
   if (is(/form|submit|제출|작성/i)) return [
     { method: 'POST', path: basePath,          summary: `${name} 제출`,  body: '{ ...fields }', response: '201 { id }' },
     { method: 'PUT',  path: `${basePath}/{id}`, summary: '임시저장',     body: '{ ...fields }', response: '200' },
     { method: 'GET',  path: `${basePath}/{id}`, summary: '작성 내용 조회', body: '—',           response: '200 Form' },
   ]
 
-  if (is(/list|목록|dashboard|대시보드/i)) return [
-    { method: 'GET', path: basePath, summary: `${name}`, body: '?status=&page=&size=20&sort=', response: '200 { items[], total }' },
-  ]
+  // api_style=query: 읽기만 (검색·대시보드·이력·모니터링)
+  if (style === 'query') {
+    if (is(/search|검색/i)) return [
+      { method: 'GET', path: basePath, summary: `${name}`, body: '?q=&filters=&sort=&page=', response: '200 { items[], total, facets }' },
+    ]
+    return [
+      { method: 'GET', path: basePath,           summary: `${name}`,       body: '?page=&size=20&sort=', response: '200 { items[], total }' },
+      { method: 'GET', path: `${basePath}/{id}`, summary: `${name} 상세`,  body: '—',                    response: '200 Entity' },
+    ]
+  }
 
-  // Generic CRUD
+  // api_style=resource: CRUD
   return [
     { method: 'GET',  path: basePath,           summary: `${name} 목록`, body: '?page=&size=20', response: '200 { items[], total }' },
     { method: 'POST', path: basePath,           summary: `${name} 생성`, body: '{ ...fields }',  response: '201 { id }' },

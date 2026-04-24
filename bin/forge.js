@@ -15,6 +15,7 @@ import { runBuild } from '../lib/build.js';
 import { runTemper } from '../lib/temper.js';
 import { runInspect } from '../lib/inspect.js';
 import { runEmit } from '../lib/emit.js';
+import { runVerify } from '../lib/verify.js';
 import { phaseBar, getPhaseStatus, getNextPhase, progressBar, PHASES, header } from '../lib/core/ui.js';
 import { VERSION } from '../lib/core/version.js';
 import { ForgeError, err as logError } from '../lib/core/errors.js';
@@ -57,6 +58,8 @@ program
 program
   .command('meta-smelt')
   .description('Phase 0: 발굴 — AI 카탈로그 생성 프롬프트')
+  .option('--quick', '자유 입력 한 번 (30초). 모드 선택 단계를 건너뜀.')
+  .option('--deep', '6단계 정밀 설문 (5분). 모드 선택 단계를 건너뜀.')
   .action(wrap(runMetaSmelt));
 
 program
@@ -96,6 +99,11 @@ program
   .option('-t, --target <type>', '생성 대상 (backend | tests | all)')
   .option('-b, --build <tool>', '빌드 도구 (gradle | maven, 기본: gradle)')
   .action(wrap(runEmit));
+
+program
+  .command('verify')
+  .description('Phase 6: 검증 — emit 결과물 컴파일·테스트 통과 여부 확인')
+  .action(wrap(runVerify));
 
 // ── 인자 없이 실행 시: 인터랙티브 메인 메뉴 ──────────────
 async function runInteractiveMenu() {

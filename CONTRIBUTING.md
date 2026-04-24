@@ -55,18 +55,33 @@ forge-protocol/
 │   ├── build.js              # forge forge (Phase 3)
 │   ├── temper.js             # forge temper (Phase 4)
 │   ├── inspect.js            # forge inspect (Phase 5)
+│   ├── verify.js             # forge verify (Phase 6) — emit 결과 컴파일·테스트 검증
+│   ├── emit.js               # forge emit — contracts → 실제 파일 기록
 │   ├── assemble.js           # forge assemble
 │   ├── assembler.js          # 조립 엔진
 │   ├── status.js             # forge status
 │   ├── catalog.js            # 카탈로그 로더
 │   ├── dependency.js         # 의존성 해결 엔진
-│   ├── domain-surveys.js     # 도메인별 설문 정의
+│   ├── decisions.js          # Phase별 결정 로직
+│   ├── schemas.js            # zod 스키마 (strict · 참조 무결성 · 한국어 에러)
 │   └── core/
 │       ├── ui.js             # 리치 UI 컴포넌트
-│       └── project.js        # 프로젝트 유틸리티
+│       ├── project.js        # 프로젝트 유틸리티
+│       ├── errors.js         # ForgeError + 통합 에러 출력기
+│       └── version.js        # package.json 단일 소스
+├── shared/                   # CLI/Web 공용 모듈
+│   ├── api-inference.js      # 블럭 → REST 엔드포인트 추론 (pluralize + api_style)
+│   ├── concerns.js           # 도메인 관심사 태그 → 프롬프트 조건부 섹션
+│   ├── architecture-style.js # 팀 규모·공수 기반 아키텍처 스타일 가드레일
+│   ├── scenario-patterns.js  # 테스트 시나리오 패턴 테이블 (11 규칙 + concerns)
+│   ├── names.js · openapi.js · java-*.js · project.js  # 코드 생성기
+│   └── index.js              # 퍼블릭 진입점
 ├── templates/
-│   └── commerce/catalog.yml  # Commerce 템플릿 (21개 블럭 / 19개 의존성 / 6 World)
+│   ├── commerce/catalog.yml        # 커머스 (21블럭 / 19 deps / 6 worlds)
+│   └── job-aggregator/catalog.yml  # 채용공고 통합 (17블럭 / 19 deps / 4 worlds)
 ├── web/                      # React + Vite Web UI
+├── scripts/
+│   └── verify-p0.mjs         # P0 생성 품질 회귀 smoke test
 └── docs/                     # 문서
 ```
 
