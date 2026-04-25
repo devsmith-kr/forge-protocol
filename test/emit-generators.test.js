@@ -104,7 +104,7 @@ describe('generateController', () => {
 });
 
 describe('generateEntity', () => {
-  it('JPA @Entity + Lombok + 감사필드를 포함한다', () => {
+  it('JPA @Entity + Lombok + 감사필드를 포함한다 (single-module 기본)', () => {
     const code = generateEntity(productGroup, 'com.forge.app');
     expect(code).toContain('package com.forge.app.sellerworld.entity;');
     expect(code).toContain('@Entity');
@@ -114,6 +114,62 @@ describe('generateEntity', () => {
     expect(code).toContain('@PrePersist');
     // 응답 필드에서 price를 BigDecimal로 추론
     expect(code).toContain('private BigDecimal price;');
+    // BaseEntity 상속하지 않음 (기본값)
+    expect(code).not.toContain('extends BaseEntity');
+  });
+
+  describe('opts.extendsBaseEntity:true (멀티모듈 emit)', () => {
+    const baseEntityCode = generateEntity(productGroup, 'com.forge.app', {
+      extendsBaseEntity: true,
+    });
+
+    it('class 선언이 extends BaseEntity', () => {
+      expect(baseEntityCode).toMatch(/public class SellerWorld extends BaseEntity/);
+    });
+
+    it(':core 패키지의 BaseEntity 를 import', () => {
+      expect(baseEntityCode).toContain('import com.forge.app.core.entity.BaseEntity;');
+    });
+
+    it('id / createdAt / updatedAt 본문 inline 제거', () => {
+      expect(baseEntityCode).not.toMatch(/private Long id/);
+      expect(baseEntityCode).not.toMatch(/private LocalDateTime createdAt/);
+      expect(baseEntityCode).not.toMatch(/private LocalDateTime updatedAt/);
+      expect(baseEntityCode).not.toContain('@Id');
+      expect(baseEntityCode).not.toContain('@GeneratedValue');
+    });
+
+    it('@PrePersist / @PreUpdate 콜백 제거 (BaseEntity 가 처리)', () => {
+      expect(baseEntityCode).not.toContain('@PrePersist');
+      expect(baseEntityCode).not.toContain('@PreUpdate');
+      expect(baseEntityCode).not.toContain('protected void onCreate');
+      expect(baseEntityCode).not.toContain('protected void onUpdate');
+    });
+
+    it('도메인 필드는 그대로 유지 (price = BigDecimal 추론)', () => {
+      expect(baseEntityCode).toContain('private BigDecimal price;');
+      expect(baseEntityCode).toContain('private String name;');
+    });
+
+    it('도메인에 LocalDateTime 필드가 없으면 import 도 생략', () => {
+      // productGroup 의 GET /{id} 응답이 createdAt 을 포함 → inferEntityFields 결과에 들어옴
+      // → extendsBaseEntity 에서 createdAt 필드가 제거되므로 LocalDateTime 도 불필요
+      expect(baseEntityCode).not.toContain('import java.time.LocalDateTime');
+    });
+
+    it('basePackage 변경 시 BaseEntity import 도 따라감', () => {
+      const out = generateEntity(productGroup, 'com.acme.shop', { extendsBaseEntity: true });
+      expect(out).toContain('import com.acme.shop.core.entity.BaseEntity;');
+      expect(out).toContain('package com.acme.shop.sellerworld.entity;');
+    });
+
+    it('@Entity / @Table / Lombok 어노테이션은 그대로 유지', () => {
+      expect(baseEntityCode).toContain('@Entity');
+      expect(baseEntityCode).toContain('@Table(name = "sellerworlds")');
+      expect(baseEntityCode).toContain('@Getter');
+      expect(baseEntityCode).toContain('@Setter');
+      expect(baseEntityCode).toContain('@Builder');
+    });
   });
 });
 

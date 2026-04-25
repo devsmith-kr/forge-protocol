@@ -98,6 +98,7 @@ program
   .description('코드 생성 — contracts.yml → Spring Boot 스켈레톤 + JUnit5')
   .option('-t, --target <type>', '생성 대상 (backend | tests | all)')
   .option('-b, --build <tool>', '빌드 도구 (gradle | maven, 기본: gradle)')
+  .option('-l, --layout <kind>', '레이아웃 (auto | single | multi-module, 기본: auto)')
   .action(wrap(runEmit));
 
 program

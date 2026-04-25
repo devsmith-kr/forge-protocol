@@ -12,8 +12,8 @@ import {
   reqDtoName,
   respDtoName,
   javaType,
-  pkgOf,
-  clsOf,
+  pkgSegmentOf,
+  classNameOf,
   svcVar,
   inferEntityFields,
 } from './names.js';
@@ -21,8 +21,8 @@ import {
 // ── Controller ───────────────────────────────────────────
 
 export function generateController(grp, basePackage) {
-  const pkg = pkgOf(grp.service);
-  const cls = clsOf(grp.service);
+  const pkg = pkgSegmentOf(grp);
+  const cls = classNameOf(grp);
   const sv = svcVar(cls);
   const pkgPath = `${basePackage}.${pkg}`;
 
@@ -116,21 +116,43 @@ export function generateController(grp, basePackage) {
 
 // ── Entity + Repository ──────────────────────────────────
 
-export function generateEntity(grp, basePackage) {
-  const pkg = pkgOf(grp.service);
-  const cls = clsOf(grp.service);
+/**
+ * @param {object} grp                       service + endpoints
+ * @param {string} basePackage               루트 패키지 (예: 'com.forge.app')
+ * @param {object} [opts]
+ * @param {boolean} [opts.extendsBaseEntity=false]
+ *        true 면 id/createdAt/updatedAt + 라이프사이클 콜백을 본문에서 제거하고
+ *        :core 모듈의 BaseEntity 를 상속한다. 멀티모듈 emit (Step 5) 전용.
+ *        기본값(false) 은 single-module v0.4 호환 — 본문에 모든 필드 inline.
+ */
+export function generateEntity(grp, basePackage, opts = {}) {
+  const { extendsBaseEntity = false } = opts;
+  const pkg = pkgSegmentOf(grp);
+  const cls = classNameOf(grp);
   const pkgPath = `${basePackage}.${pkg}`;
-  const fields = inferEntityFields(grp).filter((f) => f !== 'id');
+
+  // BaseEntity 가 id/createdAt/updatedAt 을 제공하므로, 추론된 필드에서 중복 제거.
+  // single 모드에서도 id 는 항상 제거(아래에서 inline 으로 별도 작성).
+  const fields = inferEntityFields(grp).filter((f) => {
+    if (f === 'id') return false;
+    if (extendsBaseEntity && (f === 'createdAt' || f === 'updatedAt')) return false;
+    return true;
+  });
 
   const needsBigDecimal = fields.some((f) => javaType(f) === 'BigDecimal');
   const needsList = fields.some((f) => javaType(f).startsWith('List'));
+  // single 모드는 createdAt/updatedAt 을 본문에 inline 하므로 LocalDateTime 항상 필요.
+  // multi 모드는 도메인 필드에 LocalDateTime 이 있을 때만 필요 (BaseEntity 가 처리).
+  const needsLocalDateTime =
+    !extendsBaseEntity || fields.some((f) => javaType(f) === 'LocalDateTime');
 
   const imports = [
     'jakarta.persistence.*',
     'lombok.*',
     needsBigDecimal ? 'java.math.BigDecimal' : '',
-    'java.time.LocalDateTime',
+    needsLocalDateTime ? 'java.time.LocalDateTime' : '',
     needsList ? 'java.util.List' : '',
+    extendsBaseEntity ? `${basePackage}.core.entity.BaseEntity` : '',
   ]
     .filter(Boolean)
     .map((i) => `import ${i};`)
@@ -138,6 +160,20 @@ export function generateEntity(grp, basePackage) {
 
   const fieldLines = fields.map((f) => `    private ${javaType(f)} ${f};`).join('\n');
 
+  if (extendsBaseEntity) {
+    return (
+      `package ${pkgPath}.entity;\n\n` +
+      `${imports}\n\n` +
+      `@Entity\n` +
+      `@Table(name = "${pkg}s")\n` +
+      `@Getter\n@Setter\n@NoArgsConstructor\n@AllArgsConstructor\n@Builder\n` +
+      `public class ${cls} extends BaseEntity {\n\n` +
+      (fieldLines ? `${fieldLines}\n` : '') +
+      `}\n`
+    );
+  }
+
+  // single-module 기본 동작 (v0.4 호환 — 회귀 0)
   return (
     `package ${pkgPath}.entity;\n\n` +
     `${imports}\n\n` +
@@ -162,8 +198,8 @@ export function generateEntity(grp, basePackage) {
 }
 
 export function generateRepository(grp, basePackage) {
-  const pkg = pkgOf(grp.service);
-  const cls = clsOf(grp.service);
+  const pkg = pkgSegmentOf(grp);
+  const cls = classNameOf(grp);
   const pkgPath = `${basePackage}.${pkg}`;
 
   return (
@@ -177,7 +213,7 @@ export function generateRepository(grp, basePackage) {
 // ── DTOs (Java record) ──────────────────────────────────
 
 export function generateDtos(grp, basePackage) {
-  const pkg = pkgOf(grp.service);
+  const pkg = pkgSegmentOf(grp);
   const pkgPath = `${basePackage}.${pkg}`;
   const seen = {};
 

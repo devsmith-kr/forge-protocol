@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generateContracts } from '../generators'
 import { generateBuildPrompt, generateBuildExecutionPrompt } from '../promptGenerator'
-import { downloadOpenApi, downloadSkeletonZip } from '../codeGenerators'
+import { downloadOpenApi, downloadSkeletonZip, downloadMultiModuleZip } from '../codeGenerators'
 import PhaseShell, { DownloadBar } from '../components/PhaseShell'
 import ClaudeBridgePanel from '../components/ClaudeBridgePanel'
 import { SVC_TEXT_COLORS } from '../constants'
@@ -174,6 +174,21 @@ export default function BuildPhase({ onNext, onPrev }) {
     try { await downloadSkeletonZip(groups, catalogName) } finally { setDownloading(null) }
   }
 
+  const handleMultiModule = async () => {
+    setDownloading('multi')
+    try {
+      await downloadMultiModuleZip(groups, { catalogName, catalog: catalogData })
+    } catch (e) {
+      // groups 가 1개 이하면 decideLayout 이 single 로 떨어짐 — 사용자에게 안내
+      alert(e.message || '멀티모듈 ZIP 생성 실패')
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  // 도메인이 2개 이상이어야 멀티모듈 분기 가능
+  const canMultiModule = groups.length >= 2
+
   const downloadBar = groups.length > 0 && (
     <>
       <ClaudeBridgePanel
@@ -187,7 +202,15 @@ export default function BuildPhase({ onNext, onPrev }) {
           📄 openapi.yml
         </button>
         <button className="download-btn" onClick={handleSkeleton} disabled={downloading === 'skeleton'}>
-          {downloading === 'skeleton' ? '⏳ 생성 중…' : '📦 스켈레톤 코드 ZIP'}
+          {downloading === 'skeleton' ? '⏳ 생성 중…' : '📦 스켈레톤 ZIP (단일 모듈)'}
+        </button>
+        <button
+          className="download-btn"
+          onClick={handleMultiModule}
+          disabled={!canMultiModule || downloading === 'multi'}
+          title={canMultiModule ? '도메인별 Gradle 모듈 + ArchUnit 경계 검증' : '도메인 2개 이상 필요'}
+        >
+          {downloading === 'multi' ? '⏳ 생성 중…' : '🏗️ 멀티모듈 ZIP'}
         </button>
       </DownloadBar>
     </>

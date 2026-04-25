@@ -6,26 +6,32 @@ worlds:
     title: "파는 사람의 세계"
     description: "판매자가 상품을 등록하고 관리하는 영역"
     order: 1
+    slug: marketplace          # 멀티모듈 emit 시 :domain-marketplace
   - id: w-buyer
     title: "사는 사람의 세계"
     description: "구매자가 상품을 탐색하고 구매하는 영역"
     order: 2
+    slug: storefront
   - id: w-logistics
     title: "물건이 이동하는 세계"
     description: "물류 입고부터 배송까지의 영역"
     order: 3
+    slug: fulfillment
   - id: w-money
     title: "돈이 흐르는 세계"
     description: "결제, 환불, 정산의 영역"
     order: 4
+    slug: billing
   - id: w-admin
     title: "관리하는 세계"
     description: "운영자가 플랫폼을 관리하는 영역"
     order: 5
+    slug: backoffice
   - id: w-integration
     title: "연결하는 세계"
     description: "외부 시스템과의 연동 영역"
     order: 6
+    slug: integration
 
 bundles:
   # 파는 사람의 세계

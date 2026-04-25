@@ -12,21 +12,25 @@ worlds:
     title: 구직자
     icon: 🔍
     description: 흩어진 공고를 한 곳에서 검색·저장·알림 받는 사용자 흐름
+    slug: seeker             # 멀티모듈 emit 시 :domain-seeker
 
   - id: w-ingest
     title: 데이터 수집·정제
     icon: 🛠️
     description: 외부 채용 사이트에서 공고를 수집하고 표준 스키마로 정규화
+    slug: ingestion
 
   - id: w-operator
     title: 운영자
     icon: 🧑‍💼
     description: 공고 품질 관리, 신고 처리, 수집 파이프라인 모니터링
+    slug: operator
 
   - id: w-platform
     title: 플랫폼 기반
     icon: ⚙️
     description: 계정/인증/알림 등 전 World가 공유하는 기반 기능
+    slug: platform
 
 bundles:
   # 구직자 World

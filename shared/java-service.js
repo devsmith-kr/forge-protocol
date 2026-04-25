@@ -12,17 +12,77 @@ import {
   reqDtoName,
   respDtoName,
   pathSegs,
-  pkgOf,
-  clsOf,
+  pkgSegmentOf,
+  classNameOf,
   isCrudEndpoint,
   inferEntityFields,
 } from './names.js';
 
 // ── Service 인터페이스 ──────────────────────────────────
 
+/**
+ * 멀티모듈 emit 전용 — interface + impl 두 파일 대신 단일 @Service 클래스를 만든다.
+ * 모든 메서드는 UnsupportedOperationException 으로 stub. Spring 컨텍스트 로드 + DI 통과.
+ *
+ * single-module 의 generateServiceInterface + generateServiceImpl 조합은 v0.4 호환을
+ * 위해 그대로 둔다. 멀티모듈에서는 Application 부트 시 빈 등록이 필수라 stub 클래스가 필요.
+ */
+export function generateServiceClassStub(grp, basePackage) {
+  const pkg = pkgSegmentOf(grp);
+  const cls = classNameOf(grp);
+  const pkgPath = `${basePackage}.${pkg}`;
+  const repoVar = cls[0].toLowerCase() + cls.slice(1) + 'Repository';
+
+  const imports = new Set([
+    `${pkgPath}.dto.*`,
+    `${pkgPath}.repository.${cls}Repository`,
+    `lombok.RequiredArgsConstructor`,
+    `org.springframework.stereotype.Service`,
+  ]);
+
+  const methods = grp.endpoints
+    .map((ep) => {
+      const body = parseBody(ep.body);
+      const resp = parseResp(ep.response);
+      const mName = methodName(ep.method, ep.path);
+      const hasId = ep.path.includes('{id}');
+      const rqd = reqDtoName(ep.method, ep.path);
+      const rpd = respDtoName(ep.method, ep.path);
+
+      const params = [];
+      if (hasId) params.push('Long id');
+      if (body.kind === 'json' && body.fields.length) params.push(`${rqd} request`);
+      else if (body.kind === 'multipart') {
+        imports.add('org.springframework.web.multipart.MultipartFile');
+        params.push('MultipartFile file');
+      } else if (body.kind === 'query') params.push('int page, int size');
+
+      const ret = resp.status === '204' ? 'void' : rpd;
+      return (
+        `    public ${ret} ${mName}(${params.join(', ')}) {\n` +
+        `        // TODO: ${ep.summary || mName} 구현\n` +
+        `        throw new UnsupportedOperationException("${mName} 구현 필요");\n` +
+        `    }`
+      );
+    })
+    .join('\n\n');
+
+  return (
+    `package ${pkgPath}.service;\n\n` +
+    [...imports].sort().map((i) => `import ${i};`).join('\n') +
+    `\n\n` +
+    `@Service\n` +
+    `@RequiredArgsConstructor\n` +
+    `public class ${cls}Service {\n\n` +
+    `    private final ${cls}Repository ${repoVar};\n\n` +
+    `${methods}\n` +
+    `}\n`
+  );
+}
+
 export function generateServiceInterface(grp, basePackage) {
-  const pkg = pkgOf(grp.service);
-  const cls = clsOf(grp.service);
+  const pkg = pkgSegmentOf(grp);
+  const cls = classNameOf(grp);
   const pkgPath = `${basePackage}.${pkg}`;
 
   const methods = grp.endpoints
@@ -106,8 +166,8 @@ export function actionHint(ep, cls, repoVar) {
 // ── ServiceImpl (CRUD 자동 구현) ────────────────────────
 
 export function generateServiceImpl(grp, basePackage) {
-  const pkg = pkgOf(grp.service);
-  const cls = clsOf(grp.service);
+  const pkg = pkgSegmentOf(grp);
+  const cls = classNameOf(grp);
   const pkgPath = `${basePackage}.${pkg}`;
   const repoVar = cls[0].toLowerCase() + cls.slice(1) + 'Repository';
   const entityFields = inferEntityFields(grp).filter((f) => f !== 'id');
