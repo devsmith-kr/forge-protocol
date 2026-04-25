@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  toResourcePath,
-  inferApiStyle,
-  inferEndpoints,
-} from '../shared/api-inference.js';
+import { toResourcePath, inferApiStyle, inferEndpoints } from '../shared/api-inference.js';
 
 describe('toResourcePath (pluralize)', () => {
   it('이미 복수형인 id 에 s 를 중복으로 붙이지 않는다', () => {
@@ -94,16 +90,52 @@ describe('inferEndpoints', () => {
   it('api_style=query 블럭은 GET 만', () => {
     const endpoints = inferEndpoints({ id: 'search-history', api_style: 'query', name: '검색 이력' });
     expect(endpoints.length).toBeGreaterThan(0);
-    expect(endpoints.every(e => e.method === 'GET')).toBe(true);
+    expect(endpoints.every((e) => e.method === 'GET')).toBe(true);
   });
 
   it('auth 블럭은 /auth/login|signup|refresh|logout 고정 패턴', () => {
     const endpoints = inferEndpoints({ id: 'buyer-signup', name: '회원가입' });
-    const paths = endpoints.map(e => e.path);
+    const paths = endpoints.map((e) => e.path);
     expect(paths).toContain('/auth/login');
     expect(paths).toContain('/auth/signup');
     expect(paths).toContain('/auth/refresh');
     expect(paths).toContain('/auth/logout');
+  });
+
+  it('product-register / inventory-register 는 auth 분기 빠지면 안됨 (v0.5 결함 회귀)', () => {
+    // 'register' 단어를 포함하는 일반 등록 블럭이 auth/login endpoint 를 만들면
+    // 여러 도메인 컨트롤러에 같은 매핑이 생겨 Spring Ambiguous mapping 부트 실패.
+    const productRegister = inferEndpoints({ id: 'product-register', name: '상품 등록' });
+    const productPaths = productRegister.map((e) => e.path);
+    expect(productPaths).not.toContain('/auth/login');
+    expect(productPaths).not.toContain('/auth/signup');
+    expect(productPaths.some((p) => p.startsWith('/product-registers'))).toBe(true);
+
+    const inventoryRegister = inferEndpoints({ id: 'inventory-register', name: '재고 등록' });
+    expect(inventoryRegister.map((e) => e.path)).not.toContain('/auth/login');
+  });
+
+  it('정상 auth 블럭은 여전히 auth 패턴 적용 (회귀 보호)', () => {
+    expect(inferEndpoints({ id: 'signup', name: '회원가입' }).map((e) => e.path)).toContain('/auth/signup');
+    expect(inferEndpoints({ id: 'auth-login', name: '로그인' }).map((e) => e.path)).toContain('/auth/login');
+    expect(inferEndpoints({ id: 'buyer-signup', name: '회원가입' }).map((e) => e.path)).toContain('/auth/login');
+    expect(inferEndpoints({ id: 'user-logout', name: '로그아웃' }).map((e) => e.path)).toContain('/auth/logout');
+  });
+
+  it('social/oauth 블럭은 auth 와 다른 경로 (충돌 방지) — v0.5 결함 회귀', () => {
+    const endpoints = inferEndpoints({ id: 'social-login', name: '소셜 로그인' });
+    const paths = endpoints.map((e) => e.path);
+    expect(paths.every((p) => p.includes('/oauth/'))).toBe(true);
+    // 표준 auth 의 경로와 겹치지 않아야 함
+    expect(paths).not.toContain('/auth/login');
+    expect(paths).not.toContain('/auth/signup');
+  });
+
+  it('oauth 블럭은 provider/callback 포함', () => {
+    const endpoints = inferEndpoints({ id: 'oauth-google', name: 'Google OAuth' });
+    const paths = endpoints.map((e) => e.path);
+    expect(paths.some((p) => p.includes('{provider}'))).toBe(true);
+    expect(paths.some((p) => p.includes('callback'))).toBe(true);
   });
 
   it('detail 블럭은 단일 GET /{id}', () => {
@@ -115,15 +147,15 @@ describe('inferEndpoints', () => {
 
   it('payment 블럭은 confirm/cancel 포함', () => {
     const endpoints = inferEndpoints({ id: 'payment', name: '결제' });
-    const paths = endpoints.map(e => e.path);
-    expect(paths.some(p => p.endsWith('/confirm'))).toBe(true);
-    expect(paths.some(p => p.endsWith('/cancel'))).toBe(true);
+    const paths = endpoints.map((e) => e.path);
+    expect(paths.some((p) => p.endsWith('/confirm'))).toBe(true);
+    expect(paths.some((p) => p.endsWith('/cancel'))).toBe(true);
   });
 
   it('기본 resource 블럭은 CRUD 5개', () => {
     const endpoints = inferEndpoints({ id: 'cart', name: '장바구니' });
     expect(endpoints).toHaveLength(5);
-    const methods = endpoints.map(e => e.method);
+    const methods = endpoints.map((e) => e.method);
     expect(methods).toContain('GET');
     expect(methods).toContain('POST');
     expect(methods).toContain('PUT');

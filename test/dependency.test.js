@@ -34,10 +34,7 @@ describe('resolveAll', () => {
 
   // ── requires 의존성 해결 ─────────────────────────────
   it('직접 의존성(requires)을 자동 추가', () => {
-    const catalog = makeCatalog([
-      req('order', 'payment'),
-      req('order', 'cart'),
-    ]);
+    const catalog = makeCatalog([req('order', 'payment'), req('order', 'cart')]);
 
     const result = resolveAll(['order'], catalog);
 
@@ -50,10 +47,7 @@ describe('resolveAll', () => {
   });
 
   it('간접 의존성(requires 체인)을 재귀적으로 해결', () => {
-    const catalog = makeCatalog([
-      req('order', 'payment'),
-      req('payment', 'pg-integration'),
-    ]);
+    const catalog = makeCatalog([req('order', 'payment'), req('payment', 'pg-integration')]);
 
     const result = resolveAll(['order'], catalog);
 
@@ -62,9 +56,7 @@ describe('resolveAll', () => {
   });
 
   it('이미 선택된 의존성은 autoAdded에 포함하지 않음', () => {
-    const catalog = makeCatalog([
-      req('order', 'payment'),
-    ]);
+    const catalog = makeCatalog([req('order', 'payment')]);
 
     const result = resolveAll(['order', 'payment'], catalog);
 
@@ -74,11 +66,7 @@ describe('resolveAll', () => {
 
   // ── 순환 참조 방지 ───────────────────────────────────
   it('순환 의존성이 무한 루프를 발생시키지 않음', () => {
-    const catalog = makeCatalog([
-      req('A', 'B'),
-      req('B', 'C'),
-      req('C', 'A'),
-    ]);
+    const catalog = makeCatalog([req('A', 'B'), req('B', 'C'), req('C', 'A')]);
 
     const result = resolveAll(['A'], catalog);
 
@@ -88,9 +76,7 @@ describe('resolveAll', () => {
   });
 
   it('자기 자신을 requires하는 경우에도 안전', () => {
-    const catalog = makeCatalog([
-      req('A', 'A'),
-    ]);
+    const catalog = makeCatalog([req('A', 'A')]);
 
     const result = resolveAll(['A'], catalog);
     expect(result.allBlocks).toEqual(['A']);
@@ -99,10 +85,7 @@ describe('resolveAll', () => {
 
   // ── affects 관계 ────────────────────────────────────
   it('선택된 블럭의 affects 대상을 affected로 수집', () => {
-    const catalog = makeCatalog([
-      aff('coupon', 'payment'),
-      aff('coupon', 'refund'),
-    ]);
+    const catalog = makeCatalog([aff('coupon', 'payment'), aff('coupon', 'refund')]);
 
     const result = resolveAll(['coupon'], catalog);
 
@@ -111,10 +94,7 @@ describe('resolveAll', () => {
   });
 
   it('이미 선택된(required) 블럭은 affected에 포함하지 않음', () => {
-    const catalog = makeCatalog([
-      req('order', 'payment'),
-      aff('order', 'payment'),
-    ]);
+    const catalog = makeCatalog([req('order', 'payment'), aff('order', 'payment')]);
 
     const result = resolveAll(['order'], catalog);
 
@@ -124,10 +104,14 @@ describe('resolveAll', () => {
 
   // ── prerequisites ────────────────────────────────────
   it('선택된 블럭을 enables하는 준비물을 수집', () => {
-    const catalog = makeCatalog([], [], [
-      { id: 'pg-contract', name: 'PG 계약', enables: ['payment'] },
-      { id: 'aws-setup', name: 'AWS 계정', enables: ['notification'] },
-    ]);
+    const catalog = makeCatalog(
+      [],
+      [],
+      [
+        { id: 'pg-contract', name: 'PG 계약', enables: ['payment'] },
+        { id: 'aws-setup', name: 'AWS 계정', enables: ['notification'] },
+      ],
+    );
 
     const result = resolveAll(['payment'], catalog);
 
@@ -136,9 +120,7 @@ describe('resolveAll', () => {
   });
 
   it('enables가 없는 준비물은 무시', () => {
-    const catalog = makeCatalog([], [], [
-      { id: 'orphan', name: 'unused' },
-    ]);
+    const catalog = makeCatalog([], [], [{ id: 'orphan', name: 'unused' }]);
 
     const result = resolveAll(['payment'], catalog);
     expect(result.prerequisites).toHaveLength(0);
@@ -146,18 +128,21 @@ describe('resolveAll', () => {
 
   // ── cascades (사용자 결정) ───────────────────────────
   it('선택된 블럭의 cascade 질문을 수집', () => {
-    const catalog = makeCatalog([], [
-      {
-        trigger: 'coupon',
-        ask_questions: [
-          {
-            question: '쿠폰 할인 부담은?',
-            options: ['판매자 부담', '플랫폼 부담'],
-            cascade_effects: {},
-          },
-        ],
-      },
-    ]);
+    const catalog = makeCatalog(
+      [],
+      [
+        {
+          trigger: 'coupon',
+          ask_questions: [
+            {
+              question: '쿠폰 할인 부담은?',
+              options: ['판매자 부담', '플랫폼 부담'],
+              cascade_effects: {},
+            },
+          ],
+        },
+      ],
+    );
 
     const result = resolveAll(['coupon'], catalog);
 
@@ -167,12 +152,15 @@ describe('resolveAll', () => {
   });
 
   it('선택되지 않은 블럭의 cascade는 무시', () => {
-    const catalog = makeCatalog([], [
-      {
-        trigger: 'coupon',
-        ask_questions: [{ question: '쿠폰 질문', options: [] }],
-      },
-    ]);
+    const catalog = makeCatalog(
+      [],
+      [
+        {
+          trigger: 'coupon',
+          ask_questions: [{ question: '쿠폰 질문', options: [] }],
+        },
+      ],
+    );
 
     const result = resolveAll(['order'], catalog);
     expect(result.decisions).toHaveLength(0);
@@ -181,22 +169,14 @@ describe('resolveAll', () => {
   // ── 복합 시나리오 ───────────────────────────────────
   it('requires + affects + cascades 복합 시나리오', () => {
     const catalog = makeCatalog(
-      [
-        req('order', 'cart'),
-        req('order', 'payment'),
-        aff('payment', 'settlement'),
-      ],
+      [req('order', 'cart'), req('order', 'payment'), aff('payment', 'settlement')],
       [
         {
           trigger: 'order',
-          ask_questions: [
-            { question: '부분 취소 허용?', options: ['예', '아니오'] },
-          ],
+          ask_questions: [{ question: '부분 취소 허용?', options: ['예', '아니오'] }],
         },
       ],
-      [
-        { id: 'pg-contract', name: 'PG 계약', enables: ['payment'] },
-      ],
+      [{ id: 'pg-contract', name: 'PG 계약', enables: ['payment'] }],
     );
 
     const result = resolveAll(['order'], catalog);
@@ -219,15 +199,10 @@ describe('resolveAll', () => {
 
   // ── 다이아몬드 의존성 ────────────────────────────────
   it('다이아몬드 의존성(A→B, A→C, B→D, C→D)에서 중복 없이 해결', () => {
-    const catalog = makeCatalog([
-      req('A', 'B'),
-      req('A', 'C'),
-      req('B', 'D'),
-      req('C', 'D'),
-    ]);
+    const catalog = makeCatalog([req('A', 'B'), req('A', 'C'), req('B', 'D'), req('C', 'D')]);
 
     const result = resolveAll(['A'], catalog);
-    const dCount = result.allBlocks.filter(id => id === 'D').length;
+    const dCount = result.allBlocks.filter((id) => id === 'D').length;
     expect(dCount).toBe(1);
     expect(result.allBlocks).toHaveLength(4);
   });

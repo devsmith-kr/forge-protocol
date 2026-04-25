@@ -12,7 +12,11 @@ async function ensureDir() {
 }
 
 afterEach(async () => {
-  try { await rm(TEST_DIR, { recursive: true }); } catch { /* cleanup ignore */ }
+  try {
+    await rm(TEST_DIR, { recursive: true });
+  } catch {
+    /* cleanup ignore */
+  }
 });
 
 // ═════════════════════════════════════════════════════════
@@ -32,7 +36,11 @@ describe('atomicWriteFile', () => {
     await atomicWriteFile(filePath, 'data: test\n');
 
     let tmpExists = true;
-    try { await access(filePath + '.tmp'); } catch { tmpExists = false; }
+    try {
+      await access(filePath + '.tmp');
+    } catch {
+      tmpExists = false;
+    }
     expect(tmpExists).toBe(false);
   });
 
@@ -83,7 +91,11 @@ describe('loadYaml / saveYaml (제네릭)', () => {
 
     const tmpPath = join(TEST_DIR, 'project', 'atomic.yml.tmp');
     let tmpExists = true;
-    try { await access(tmpPath); } catch { tmpExists = false; }
+    try {
+      await access(tmpPath);
+    } catch {
+      tmpExists = false;
+    }
     expect(tmpExists).toBe(false);
   });
 

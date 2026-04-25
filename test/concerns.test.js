@@ -7,12 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  KNOWN_CONCERNS,
-  concernsOf,
-  collectConcerns,
-  buildConcernFragments,
-} from '../shared/concerns.js';
+import { KNOWN_CONCERNS, concernsOf, collectConcerns, buildConcernFragments } from '../shared/concerns.js';
 
 describe('concernsOf', () => {
   it('명시된 concerns 필드를 최우선으로 따른다', () => {

@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  FEATURE_DETECTORS,
-  detectFeatures,
-  getRiskBlockIds,
-  isRiskBlock,
-  MATCH_SCORES,
-} from '../lib/constants.js';
+import { FEATURE_DETECTORS, detectFeatures, getRiskBlockIds, isRiskBlock, MATCH_SCORES } from '../lib/constants.js';
 
 // ═════════════════════════════════════════════════════════
 describe('FEATURE_DETECTORS', () => {
@@ -24,7 +18,7 @@ describe('FEATURE_DETECTORS', () => {
   });
 
   it('필수 feature ID가 모두 포함됨', () => {
-    const ids = FEATURE_DETECTORS.map(d => d.id);
+    const ids = FEATURE_DETECTORS.map((d) => d.id);
     expect(ids).toContain('payment');
     expect(ids).toContain('auth');
     expect(ids).toContain('concurrency');
@@ -41,7 +35,7 @@ describe('detectFeatures', () => {
     const blockIds = new Set(['payment', 'buyer-signup']);
     const features = detectFeatures(blockIds);
 
-    const featureIds = features.map(f => f.id);
+    const featureIds = features.map((f) => f.id);
     expect(featureIds).toContain('payment');
     expect(featureIds).toContain('auth');
   });
@@ -58,7 +52,7 @@ describe('detectFeatures', () => {
 
   it('간접 블럭 ID도 감지 (pg-integration → payment)', () => {
     const features = detectFeatures(new Set(['pg-integration']));
-    expect(features.map(f => f.id)).toContain('payment');
+    expect(features.map((f) => f.id)).toContain('payment');
   });
 });
 

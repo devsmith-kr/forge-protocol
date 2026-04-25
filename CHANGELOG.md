@@ -5,6 +5,111 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)를 따르며,
 [유의적 버전 관리(Semantic Versioning)](https://semver.org/spec/v2.0.0.html)를 준수합니다.
 
+## [0.5.0] - 2026-04-25
+
+도메인이 패키지로만 분리되던 v0.4 의 한계를 넘어 **Gradle 멀티모듈로 도메인 경계를
+컴파일 시점에 강제**한다. 사용자가 모놀리식이라도 모듈 경계를 유지하다가 추후 MSA 로
+전환하기 쉬운 형태를 받을 수 있게 됐다.
+
+또한 AI 가 catalog 단계에서 **도메인 맥락을 반영한 영문 슬러그**를 추론하도록 강화 —
+"파는 사람의 세계" 가 아니라 "marketplace" 가 모듈/패키지명이 된다.
+
+### 추가
+
+- **`forge emit --layout multi-module`** — Gradle 멀티모듈 트리 emit. 출력 구조:
+  ```
+  backend/
+  ├─ build.gradle / settings.gradle / openapi.yml
+  ├─ core/                    공통 BaseEntity / CommonResponse / 예외 6 클래스
+  ├─ domain-marketplace/      Controller/Service/Repository/Entity/DTO + ArchTest
+  ├─ domain-storefront/ ...
+  └─ app/                     Application.java + application.yml + ContextTest
+  ```
+- **3중 도메인 경계 방어선**:
+  1. *Gradle*: `domain-X/build.gradle` 가 다른 domain 모듈에 `project(...)` 의존성 0건
+  2. *ArchUnit*: 각 도메인 모듈에 `*ArchitectureTest.java` 자동 생성. 다른 도메인
+     패키지를 import 한 클래스가 있으면 빌드 실패
+  3. *verify 리포트*: ArchUnit 위반은 `verify-report.json.tests.boundary_violations`
+     로 별도 분류, 콘솔에서도 빨간 헤더로 구분 출력
+- **AI 도메인 슬러그 추론** — `catalog.yml` 의 World 정의에 `slug` 필드 추가 (zod 스키마
+  업데이트). meta-smelt 시스템 프롬프트에 "도메인 맥락 반영 영문 kebab-case slug"
+  지시 + 예시 (커머스/치과/채용) 포함. 빌트인 commerce/job-aggregator catalog 에도
+  의미 있는 슬러그 사전 부여 (marketplace/storefront/fulfillment/billing/...)
+- **`shared/multi-module/`** 모듈 신설 — `layout.js` (토폴로지 결정기),
+  `gradle.js` (빌드 파일 생성기), `core-sources.js` (:core 6 클래스),
+  `archunit.js` (도메인 경계 테스트), `emit-files.js` (CLI/Web 공통 순수 함수)
+- **Web UI 멀티모듈 ZIP 다운로드** — Build phase 에 "🏗️ 멀티모듈 ZIP" 버튼.
+  CLI `forge emit --layout multi-module` 와 1:1 동일한 트리 출력 (단일 소스 of truth
+  `buildMultiModuleFiles` 사용). 도메인 1개 이하면 자동 비활성
+- **`forge emit` 백업** — multi-module 으로 첫 emit 시 기존 `backend/` 를
+  `backend.bak-{ISO timestamp}/` 로 자동 rename → v0.4 결과물 보존
+
+### 변경
+
+- **`generateEntity(grp, basePackage, opts)`** 시그니처 확장 —
+  `opts.extendsBaseEntity: true` 면 id/createdAt/updatedAt + `@PrePersist`/`@PreUpdate`
+  콜백을 본문에서 제거하고 `:core` 의 `BaseEntity` 를 상속. 기본값 `false` 라
+  single-module 호환 (회귀 0건). 멀티모듈 emit 에서만 활성화
+- **`shared/names.js` `pkgSegmentOf(grp)`** — `grp.packageSegment` 가 있으면 우선,
+  없으면 `pkgOf(grp.service)` 로 fallback. 멀티모듈에서 layout 이 결정한 패키지명
+  (AI 슬러그 반영) 이 generator 들에 일관되게 전달되도록
+- **`parseCompileErrors` / `parseTestFailures`** 멀티모듈 보강 — `> Task :module:`
+  prefix 파싱 → 각 에러/실패에 `module` 필드 첨부. 클래스명에 "Architecture" 가
+  포함된 실패는 `boundary_violations` 로 자동 분리. single-module 출력에는
+  `module` 필드를 만들지 않아 회귀 0건
+- **`buildGroupsFromContracts`** (CLI/Web) — World.slug 를 group 에 함께 통과 →
+  layout/emit 까지 슬러그 정보 보존
+- **`shared/multi-module/emit-files.js`** 분리 — 멀티모듈 emit 의 핵심 로직을
+  fs 의존성 없는 순수 함수로 추출. CLI 의 `emitMultiModule` 과 Web 의
+  `downloadMultiModuleZip` 가 동일 함수 호출
+
+### Breaking
+
+- 사용자 작성 `catalog.yml` 의 `worlds[].slug` 가 명시되어 있다면 형식 검증을
+  통과해야 한다 (`^[A-Za-z0-9][A-Za-z0-9_-]*$`). 미명시 시 자동 추론으로 fallback
+  하므로 기존 catalog 는 영향 없음
+- `forge emit` 의 자동 분기 — `architecture.yml` 의 archStyle 이 modular-monolith
+  또는 msa 이고 그룹이 2개 이상이면 multi-module 로 자동 결정. 명시적 single
+  강제하려면 `--layout single` 사용
+
+### 수동 검증으로 발견 + 수정한 결함 8개
+
+자동 테스트는 통과했으나 실제 Gradle 빌드 / Spring 부트 / 한글 입력 같은
+실 환경에서만 드러나는 결함을 사용자 풀 파이프라인 검증으로 발굴.
+
+1. **한글 클래스명** — `clsOf("파는 사람의 세계")` 가 "파는-사람의-세계" 그대로 PascalCase
+   시도 → `파는-사람의-세계.java` 출력. `classNameOf(grp)` helper 추가, 비ASCII 시
+   `slug` 기반 PascalCase fallback (`Marketplace`)
+2. **UTF-8 인코딩 실패** — Windows JDK 기본 CP949 가 한글 주석/문자열 컴파일 거부.
+   root build.gradle subprojects 에 `tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }`
+3. **springdoc 의존성 누락** — Controller 가 `@Tag`/`@Operation` 사용하나 도메인 모듈에
+   의존성 없음. `:core` build.gradle 의 `api` 에 springdoc 추가
+4. **ServiceImpl 컴파일 불가** — v0.4 의 `toResponse(${cls})` 가 Object 반환 → record
+   생성자에 못 들어감. 멀티모듈 전용 `generateServiceClassStub` — 단일 `@Service`
+   클래스 + `throw UnsupportedOperationException` stub. interface + impl 패턴 우회
+5. **action endpoint 명명 충돌** — `POST /payments/{id}/confirm` 와 `POST /refunds/{id}/confirm`
+   이 같은 group 안에서 둘 다 method 이름 `confirm` 으로 매핑 → 중복 정의. `methodName` /
+   `reqDtoName` / `respDtoName` 의 action 분기에 resource prefix 추가 (`confirmPayment` /
+   `confirmRefund`). auth/oauth 표준 그룹은 prefix 없이 유지
+6. **base_path 이중 결합** — `inferEndpoints` 가 절대 경로 반환 + `lib/build.js` 가 같은
+   절대 경로를 base_path 에 저장 → `buildGroupsFromContracts` 가 `/settlements + /settlements`
+   결합 → `/settlements/settlements`. `resolveFullPath` helper 로 절대 경로 보존
+7. **social/oauth 가 auth 와 동일 endpoint** — 같은 도메인에 `signup` 과 `social-login`
+   둘 다 있으면 `/auth/login` 매핑 충돌 → Spring Ambiguous mapping. social/oauth 별도
+   분기 (`/auth/oauth/{provider}`) + emit 단계 method+path dedupe 방어선
+8. **auth 패턴 너무 광범위** — `/auth|register/i` 가 `product-register` 같은 일반 등록
+   블럭도 매칭 → 여러 도메인 컨트롤러에 같은 `/auth/login` 매핑. Word boundary 적용
+   `/(^|-)(auth|signup|signin|login|logout)$|^auth-/i`, `register` 키워드 제거
+
+### 내부
+
+- `lib/emit/multi-emit.js` — 81줄 → 35줄 얇은 fs 래퍼로 단순화 (Step 11 리팩터)
+- `verify-p0.mjs` P0-5 추가 — commerce 카탈로그 6개 World × 5개 cross-check 로
+  도메인 경계 회귀 보호 (총 26/26 단정)
+- `scripts/manual-multi-emit.mjs` — commerce 카탈로그 → 멀티모듈 emit → gradle
+  build 자동 검증 (gradle 시스템 설치 환경에서 실행)
+- 테스트: 232 → **414 passed** (+182 신규, 회귀 0건). 결함 회귀 보호 케이스 모두 포함
+
 ## [0.4.0] - 2026-04-23
 
 실사용(채용공고 통합 검색 서비스 종단 흐름) 에서 발견된 생성 품질 결함을 제거하고,

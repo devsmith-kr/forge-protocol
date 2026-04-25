@@ -80,7 +80,22 @@ export function inferEndpoints(block, options = {}) {
   const base = apiPrefix + toResourcePath(id);
 
   // ── 도메인 특수 패턴 (resource 스타일 안에서 특화) ──
-  if (/auth|login|signup|logout|register/i.test(id)) {
+
+  // OAuth/소셜 로그인은 표준 auth 와 별도 경로 — 같은 도메인에 둘 다 있으면 충돌 방지
+  if (/oauth|social/i.test(id)) {
+    const authBase = apiPrefix + '/auth';
+    return [
+      { method: 'GET',  path: `${authBase}/oauth/{provider}`,          description: 'OAuth 인증 시작 (provider redirect)' },
+      { method: 'GET',  path: `${authBase}/oauth/{provider}/callback`, description: 'OAuth 콜백 (Authorization Code → JWT)' },
+      { method: 'POST', path: `${authBase}/oauth/{provider}/link`,     description: '기존 계정 소셜 연동' },
+    ];
+  }
+
+  // auth 블럭: ID 의 의미가 분명히 인증 도메인일 때만 auth 패턴 부여.
+  // 'register' 는 너무 광범위해 제거 — `product-register` 같은 일반 등록 블럭이
+  // auth 분기로 빠지면서 여러 도메인에 같은 `/auth/login` 매핑이 생성돼
+  // Spring Ambiguous mapping 으로 부트 실패하던 문제 (v0.5).
+  if (/(^|-)(auth|signup|signin|login|logout)$|^auth-/i.test(id)) {
     const authBase = apiPrefix + '/auth';
     return [
       { method: 'POST',   path: `${authBase}/signup`,  description: '회원가입' },

@@ -234,6 +234,7 @@ function buildContractsFromCatalog(ids, catalog) {
       return {
         id:      world.id,
         service: world.title,
+        slug:    world.slug,        // 멀티모듈 emit 시 모듈/패키지명 (있을 때만)
         color:   PALETTE[i % PALETTE.length],
         icon:    world.icon || '⚙️',
         endpoints,

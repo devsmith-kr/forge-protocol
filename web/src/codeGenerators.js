@@ -17,6 +17,8 @@ import {
   generateDtos,
   generateTestClass,
 } from '../../shared/index.js'
+import { decideLayout } from '../../shared/multi-module/layout.js'
+import { buildMultiModuleFiles } from '../../shared/multi-module/emit-files.js'
 
 export { generateOpenApiYaml }
 
@@ -121,4 +123,67 @@ export async function downloadFullPackage(groups, scenarios, catalogName = 'forg
 
   const blob = await zip.generateAsync({ type: 'blob' })
   downloadBlob(`${catalogName.toLowerCase()}-full.zip`, blob, 'application/zip')
+}
+
+// ═══════════════════════════════════════════════════════════
+// 멀티모듈 ZIP — CLI `forge emit --layout multi-module` 와 동일 트리
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Web UI 의 멀티모듈 ZIP 다운로드.
+ *
+ * 같은 `shared/multi-module/emit-files.js` 를 호출하므로 CLI 와 1:1 동일한
+ * 디렉토리 구조 + Java 소스를 출력한다.
+ *
+ * @param {Array} groups      Build phase 의 group 배열 (slug 포함)
+ * @param {object} options
+ * @param {string} [options.catalogName='forge']
+ * @param {object} [options.catalog]            catalog 객체 (worlds/bundles)
+ * @param {object} [options.scenarios]          test-scenarios — 있으면 GWT 테스트도 emit
+ * @param {Map}    [options.blockMap]           block_id → block (테스트 모듈 매칭)
+ * @param {object} [options.contracts]          블럭 카운트만 사용 (선택)
+ * @param {object} [options.architecture]       architecture.yml — archStyle 추출
+ * @param {'auto'|'multi-module'} [options.layoutOption='multi-module']
+ *        Web UI 에서는 사용자가 의도적으로 멀티모듈 ZIP 버튼을 누르므로 기본 강제.
+ */
+export async function downloadMultiModuleZip(groups, options = {}) {
+  const {
+    catalogName = 'forge',
+    catalog,
+    scenarios,
+    blockMap,
+    contracts,
+    architecture,
+    layoutOption = 'multi-module',
+  } = options
+
+  const archStyle = architecture?.architecture_style?.style
+  const layout    = decideLayout({ groups, archStyle, layoutOption })
+
+  if (layout.kind !== 'multi-module') {
+    throw new Error(
+      `멀티모듈 ZIP 을 만들 수 없습니다 — groups 가 ${groups?.length ?? 0}개 ` +
+      `라 자동 분기 결과가 single 입니다. 도메인을 2개 이상 선택하거나 layoutOption: 'multi-module' 명시.`,
+    )
+  }
+
+  const files = buildMultiModuleFiles({
+    layout,
+    groups,
+    catalog,
+    contracts,
+    scenarios,
+    blockMap,
+    basePackage: 'com.forge.app',
+    artifactId:  'forge-app',
+  })
+
+  const zip = new JSZip()
+  for (const { path, content } of files) {
+    zip.file(path, content)
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' })
+  downloadBlob(`${catalogName.toLowerCase()}-multi-module.zip`, blob, 'application/zip')
+  return files.length
 }

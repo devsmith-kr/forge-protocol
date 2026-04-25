@@ -473,10 +473,10 @@ export function getSurveyForDomain(domain) {
  */
 export function getWorkflowQuestions(roles) {
   return roles
-    .filter((role) => ROLE_WORKFLOW_QUESTIONS[role])
-    .map((role) => ({
+    .filter(role => ROLE_WORKFLOW_QUESTIONS[role])
+    .map(role => ({
       role,
-      roleName: ROLE_OPTIONS.find((o) => o.value === role)?.name?.split(' — ')[0] || role,
+      roleName: ROLE_OPTIONS.find(o => o.value === role)?.name?.split(' — ')[0] || role,
       question: ROLE_WORKFLOW_QUESTIONS[role],
     }));
 }

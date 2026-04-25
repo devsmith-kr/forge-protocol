@@ -64,11 +64,13 @@ describe('IntentSchema', () => {
   it('decisions 포함 시 통과', () => {
     const data = {
       ...validIntent,
-      decisions: [{
-        trigger: 'coupon',
-        question: '할인 부담?',
-        answer: '판매자',
-      }],
+      decisions: [
+        {
+          trigger: 'coupon',
+          question: '할인 부담?',
+          answer: '판매자',
+        },
+      ],
     };
     expect(IntentSchema.safeParse(data).success).toBe(true);
   });
@@ -111,24 +113,28 @@ describe('ArchitectureSchema', () => {
 describe('ContractsSchema', () => {
   it('유효한 contracts 통과', () => {
     const data = {
-      apis: [{
-        block_id: 'order',
-        block_name: '주문',
-        base_path: '/orders',
-        endpoints: [{ method: 'GET', path: '/', description: '주문 목록' }],
-      }],
+      apis: [
+        {
+          block_id: 'order',
+          block_name: '주문',
+          base_path: '/orders',
+          endpoints: [{ method: 'GET', path: '/', description: '주문 목록' }],
+        },
+      ],
     };
     expect(ContractsSchema.safeParse(data).success).toBe(true);
   });
 
   it('잘못된 HTTP method 시 실패', () => {
     const data = {
-      apis: [{
-        block_id: 'order',
-        block_name: '주문',
-        base_path: '/orders',
-        endpoints: [{ method: 'INVALID', path: '/' }],
-      }],
+      apis: [
+        {
+          block_id: 'order',
+          block_name: '주문',
+          base_path: '/orders',
+          endpoints: [{ method: 'INVALID', path: '/' }],
+        },
+      ],
     };
     expect(ContractsSchema.safeParse(data).success).toBe(false);
   });
@@ -138,15 +144,19 @@ describe('ContractsSchema', () => {
 describe('TestScenariosSchema', () => {
   it('유효한 test-scenarios 통과', () => {
     const data = {
-      scenarios: [{
-        block_id: 'order',
-        test_cases: [{
-          name: '정상 주문',
-          given: '유효한 입력',
-          when: 'POST /orders',
-          then: '201 응답',
-        }],
-      }],
+      scenarios: [
+        {
+          block_id: 'order',
+          test_cases: [
+            {
+              name: '정상 주문',
+              given: '유효한 입력',
+              when: 'POST /orders',
+              then: '201 응답',
+            },
+          ],
+        },
+      ],
     };
     expect(TestScenariosSchema.safeParse(data).success).toBe(true);
   });
@@ -161,7 +171,7 @@ describe('CatalogSchema', () => {
       bundles: [{ id: 'product-mgmt', world_id: 'seller' }],
       blocks: [
         { id: 'product-register', bundle_id: 'product-mgmt', name: '상품 등록' },
-        { id: 'product-edit',     bundle_id: 'product-mgmt', name: '상품 수정' },
+        { id: 'product-edit', bundle_id: 'product-mgmt', name: '상품 수정' },
       ],
       dependencies: [{ source: 'product-edit', target: 'product-register', type: 'requires' }],
     };

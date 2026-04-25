@@ -57,8 +57,9 @@ lib/
   temper.js               # forge temper — GWT 시나리오 생성 (scenario-patterns 위임)
   inspect.js              # forge inspect — 멀티 관점 검수 (concerns 조건부)
   verify.js               # forge verify — emit 결과물 컴파일·테스트 검증 (Phase 6)
-  emit.js                 # forge emit — contracts/tests → 실제 파일 기록
+  emit.js                 # forge emit — contracts/tests → 실제 파일 기록 (--layout single|multi-module)
   emit/generators.js      # CLI emit용 내부 생성기 래퍼
+  emit/multi-emit.js      # forge emit --layout multi-module — buildMultiModuleFiles 의 fs 래퍼
   assemble.js             # forge assemble — 플랜 → 블럭 자동 조립
   assembler.js            # 조립 엔진
   status.js               # forge status — 리치 대시보드
@@ -74,12 +75,18 @@ shared/                   # CLI/Web 공용 모듈
   architecture-style.js   # pickArchitectureStyle 가드레일 [P0-3]
   scenario-patterns.js    # 테스트 시나리오 패턴 테이블 (11 규칙) [P1-1]
   openapi.js              # OpenAPI 3.1 YAML 생성
-  java-api.js             # Controller/DTO 스켈레톤
+  java-api.js             # Controller/DTO 스켈레톤 (extendsBaseEntity 옵션 — v0.5)
   java-service.js         # Service/Repository/Entity 스켈레톤
   java-test.js            # JUnit5 테스트 클래스
-  names.js                # 식별자/패키지명 규칙
+  names.js                # 식별자/패키지명 규칙 (pkgSegmentOf — v0.5)
   project.js              # pom.xml / build.gradle / application.yml
   domain-surveys.js       # Meta-Smelt Deep 모드용 도메인별 설문 (CLI/Web 공유)
+  multi-module/           # v0.5.0 멀티모듈 emit
+    layout.js             # decideLayout 토폴로지 결정 + AI 슬러그 우선순위
+    gradle.js             # root/core/domain/app 5종 빌드 파일 생성기
+    core-sources.js       # :core 의 6 공통 클래스
+    archunit.js           # 도메인 경계 ArchTest 자동 생성
+    emit-files.js         # buildMultiModuleFiles — CLI/Web 공통 (fs 의존성 0)
   index.js                # 퍼블릭 진입점
 templates/
   commerce/catalog.yml           # 커머스 블럭 21개 (api_style + concerns 어노테이션)
@@ -203,14 +210,31 @@ cd web && npm run bridge        # Bridge 서버 (Claude Code / Claude API 실행
 
 ## 다음 할 일 (우선순위순)
 
-1. **npm 최초 배포** — v0.4.0 완비. `npm publish` 실행 + npm 뱃지 삽입. 2FA 필요, dry-run 검증 후 publish.
-2. **데모 자산 추가** — Vercel 호스팅 + asciinema 60초 GIF + 스크린샷 4장 (Phase 1/2/3/5 UI). README 상단 Live Demo 버튼.
-3. **CLI 단위 테스트 확충 (진행 중)** — `shared/` 신규 모듈 테스트는 v0.4.0에서 추가 완료 (api-inference/concerns/architecture-style/scenario-patterns/verify). `forge emit` 스냅샷 테스트는 여전히 공백.
-4. **세 번째 빌트인 템플릿** — commerce + job-aggregator 로 범용성 증명 완료. SaaS 또는 Content 도메인 추가로 정착 유도.
-5. **추가 개선 (v0.5.0+)**
-   - `forge verify --repair` — 실패 리포트를 Phase 3/4 프롬프트 재생성 입력으로
-   - Web UI 에 verify 연동 (Claude Bridge 통해 실행)
+1. **npm 배포 (v0.5.0)** — 멀티모듈 emit 완비. `npm publish` 실행 + npm 뱃지 갱신. 2FA 필요, dry-run 검증 후 publish.
+2. **데모 자산 추가** — Vercel 호스팅 + asciinema 60초 GIF + 스크린샷 5장 (Phase 1/2/3/5 UI + 멀티모듈 ZIP 다운로드). README 상단 Live Demo 버튼.
+3. **세 번째 빌트인 템플릿** — commerce + job-aggregator 로 범용성 증명 완료. SaaS 또는 Content 도메인 추가로 정착 유도. v0.5.0 의 AI 슬러그 prompt 가 새 도메인에서도 합리적으로 동작하는지 검증 함께.
+4. **`forge verify --repair`** — 실패 리포트(특히 boundary_violations) 를 Phase 3/4 프롬프트 재생성의 입력으로 자동 변환.
+5. **Web UI 에 verify 연동** — Claude Bridge 통해 verify 실행, ArchUnit 위반을 UI 에서 강조.
+6. **추가 개선 (v0.6.0+)**
+   - Maven 멀티모듈 지원 (v0.5.0 은 Gradle 만)
+   - `:api-contracts` 모듈 분리 (DTO 만 별도 모듈로)
    - catalog 오탈자 에러 메시지에 YAML 라인 번호 표시 (js-yaml position tracking)
+
+### v0.5.0 완료 (2026-04-25, 멀티모듈 emit + AI 슬러그)
+
+- **Step 1** 토폴로지 결정기 (`shared/multi-module/layout.js`) — `decideLayout` 순수 함수, AI 슬러그 우선순위
+- **Step 1.5** AI 도메인 슬러그 — catalog World.slug 스키마 + meta-smelt 시스템 프롬프트 강화 + 빌트인 catalog 의미 부여
+- **Step 2** Gradle 빌드 파일 생성기 (`gradle.js`) — root/core/domain/app 5종, `:domain-X` 가 `:core` 만 의존
+- **Step 3** `:core` 공통 클래스 (`core-sources.js`) — BaseEntity/CommonResponse/PageResponse/ErrorCode/BusinessException/GlobalExceptionHandler 6개
+- **Step 4** `generateEntity` 옵션 확장 — `extendsBaseEntity:true` 로 `:core.BaseEntity` 상속, single 모드 회귀 0
+- **Step 5** `emitMultiModule` 본체 (`lib/emit/multi-emit.js`) — layout 따라 디렉토리 트리 emit, 패키지 일관성
+- **Step 6** `forge emit --layout` 라우팅 + 자동 백업 (`backend.bak-{timestamp}/`)
+- **Step 7** ArchUnit 경계 테스트 (`archunit.js`) — 도메인 모듈마다 `*ArchitectureTest.java`
+- **Step 8** `forge verify` 멀티모듈 적응 — `> Task :module:` parsing, `boundary_violations` 별도 분류
+- **Step 10** verify-p0 P0-5 추가 — commerce 6 World × 5 cross-check, AI 슬러그 우선 단정 (26/26)
+- **Step 11** Web UI 동기화 — 단일 소스 `buildMultiModuleFiles` 로 CLI/Web ZIP 1:1 동일, BuildPhase "🏗️ 멀티모듈 ZIP" 버튼
+
+> **테스트 카운트**: 232 (v0.4) → **385 passed** (v0.5, +153 신규, 회귀 0건)
 
 ### v0.4.0 완료 (2026-04-23, P0+P1)
 

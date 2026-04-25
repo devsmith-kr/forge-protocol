@@ -28,12 +28,30 @@ const BUNDLES = [
 ];
 
 const BLOCKS = [
-  { id: 'product-register', bundle_id: 'product-mgmt', name: '상품 등록', icon: '📦',
-    tech_desc: 'Spring Boot JPA + QueryDSL + Redis 캐시', effort_days: 5 },
-  { id: 'buyer-signup', bundle_id: 'buyer-auth', name: '회원가입', icon: '👤',
-    tech_desc: 'Spring Security JWT + OAuth2 + RBAC 역할 기반 접근', effort_days: 4 },
-  { id: 'payment', bundle_id: 'payment-bundle', name: '결제', icon: '💳',
-    tech_desc: 'PG 연동 + Webhook 멱등(Idempotency) 처리', effort_days: 6 },
+  {
+    id: 'product-register',
+    bundle_id: 'product-mgmt',
+    name: '상품 등록',
+    icon: '📦',
+    tech_desc: 'Spring Boot JPA + QueryDSL + Redis 캐시',
+    effort_days: 5,
+  },
+  {
+    id: 'buyer-signup',
+    bundle_id: 'buyer-auth',
+    name: '회원가입',
+    icon: '👤',
+    tech_desc: 'Spring Security JWT + OAuth2 + RBAC 역할 기반 접근',
+    effort_days: 4,
+  },
+  {
+    id: 'payment',
+    bundle_id: 'payment-bundle',
+    name: '결제',
+    icon: '💳',
+    tech_desc: 'PG 연동 + Webhook 멱등(Idempotency) 처리',
+    effort_days: 6,
+  },
 ];
 
 const CATALOG = makeCatalogData(BLOCKS, WORLDS, BUNDLES);
@@ -52,26 +70,26 @@ describe('generateArchitecture', () => {
     const ids = ['product-register'];
     const result = generateArchitecture(new Set(ids), CATALOG);
 
-    const sellerService = result.services.find(s => s.id === 'seller');
+    const sellerService = result.services.find((s) => s.id === 'seller');
     expect(sellerService).toBeDefined();
     expect(sellerService.tech).toContain('Spring Boot 3');
-    expect(sellerService.tech.some(t => /JPA/i.test(t))).toBe(true);
+    expect(sellerService.tech.some((t) => /JPA/i.test(t))).toBe(true);
   });
 
   it('패턴을 tech_desc에서 추론', () => {
     const ids = ['payment'];
     const result = generateArchitecture(new Set(ids), CATALOG);
 
-    const moneyService = result.services.find(s => s.id === 'money');
+    const moneyService = result.services.find((s) => s.id === 'money');
     expect(moneyService).toBeDefined();
-    expect(moneyService.patterns.some(p => /Webhook|Idempotency/i.test(p))).toBe(true);
+    expect(moneyService.patterns.some((p) => /Webhook|Idempotency/i.test(p))).toBe(true);
   });
 
   it('layers 4단계를 반환', () => {
     const result = generateArchitecture(new Set(['product-register']), CATALOG);
 
     expect(result.layers).toHaveLength(4);
-    expect(result.layers.map(l => l.id)).toEqual(['client', 'gateway', 'app', 'db']);
+    expect(result.layers.map((l) => l.id)).toEqual(['client', 'gateway', 'app', 'db']);
   });
 
   it('ADR decisions를 반환', () => {
@@ -116,12 +134,10 @@ describe('generateContracts', () => {
   it('인증 블럭은 auth 엔드포인트를 생성', () => {
     const result = generateContracts(new Set(['buyer-signup']), CATALOG);
 
-    const buyerGroup = result.find(g => g.service.includes('구매자'));
+    const buyerGroup = result.find((g) => g.service.includes('구매자'));
     expect(buyerGroup).toBeDefined();
 
-    const authEndpoints = buyerGroup.endpoints.filter(e =>
-      e.path.includes('/auth/')
-    );
+    const authEndpoints = buyerGroup.endpoints.filter((e) => e.path.includes('/auth/'));
     expect(authEndpoints.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -158,7 +174,7 @@ describe('generateTestScenarios', () => {
   it('항상 happy-path 테스트를 포함', () => {
     const result = generateTestScenarios(new Set(['product-register']), CATALOG);
 
-    const happyPath = result[0].tests.find(t => t.type === 'happy-path');
+    const happyPath = result[0].tests.find((t) => t.type === 'happy-path');
     expect(happyPath).toBeDefined();
     expect(happyPath).toHaveProperty('given');
     expect(happyPath).toHaveProperty('when');
@@ -168,14 +184,14 @@ describe('generateTestScenarios', () => {
   it('인증 블럭에 보안 테스트 시나리오 추가', () => {
     const result = generateTestScenarios(new Set(['buyer-signup']), CATALOG);
 
-    const securityTest = result[0].tests.find(t => t.type === 'security');
+    const securityTest = result[0].tests.find((t) => t.type === 'security');
     expect(securityTest).toBeDefined();
   });
 
   it('멱등성 블럭에 idempotency 테스트 추가', () => {
     const result = generateTestScenarios(new Set(['payment']), CATALOG);
 
-    const idempotencyTest = result[0].tests.find(t => t.type === 'idempotency');
+    const idempotencyTest = result[0].tests.find((t) => t.type === 'idempotency');
     expect(idempotencyTest).toBeDefined();
   });
 });
@@ -183,13 +199,10 @@ describe('generateTestScenarios', () => {
 // ═════════════════════════════════════════════════════════
 describe('generateInspectReport', () => {
   it('4개 관점(security, performance, operations, scalability)을 반환', () => {
-    const result = generateInspectReport(
-      new Set(['product-register', 'buyer-signup', 'payment']),
-      CATALOG,
-    );
+    const result = generateInspectReport(new Set(['product-register', 'buyer-signup', 'payment']), CATALOG);
 
     expect(result.perspectives).toHaveLength(4);
-    const ids = result.perspectives.map(p => p.id);
+    const ids = result.perspectives.map((p) => p.id);
     expect(ids).toEqual(['security', 'performance', 'operations', 'scalability']);
   });
 
@@ -206,9 +219,7 @@ describe('generateInspectReport', () => {
   it('totalScore는 관점 점수의 평균', () => {
     const result = generateInspectReport(new Set(['buyer-signup', 'payment']), CATALOG);
 
-    const expectedAvg = Math.round(
-      result.perspectives.reduce((s, p) => s + p.score, 0) / result.perspectives.length
-    );
+    const expectedAvg = Math.round(result.perspectives.reduce((s, p) => s + p.score, 0) / result.perspectives.length);
     expect(result.totalScore).toBe(expectedAvg);
   });
 
@@ -216,9 +227,7 @@ describe('generateInspectReport', () => {
     const result = generateInspectReport(new Set(['payment']), CATALOG);
 
     const securityFindings = result.perspectives[0].findings;
-    const paymentFinding = securityFindings.find(f =>
-      f.title.includes('결제') || f.title.includes('웹훅')
-    );
+    const paymentFinding = securityFindings.find((f) => f.title.includes('결제') || f.title.includes('웹훅'));
     expect(paymentFinding).toBeDefined();
   });
 

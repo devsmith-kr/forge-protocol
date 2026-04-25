@@ -68,15 +68,12 @@ describe('groupBlocksByWorld', () => {
   it('bundle_id가 존재하지 않는 블럭은 무시', () => {
     const catalog = {
       ...CATALOG,
-      blocks: [
-        ...CATALOG.blocks,
-        { id: 'orphan', bundle_id: 'nonexistent', name: '고아 블럭' },
-      ],
+      blocks: [...CATALOG.blocks, { id: 'orphan', bundle_id: 'nonexistent', name: '고아 블럭' }],
     };
 
     const groups = groupBlocksByWorld(catalog);
-    const allBlocks = groups.flatMap(g => g.bundles.flatMap(b => b.blocks));
-    expect(allBlocks.find(b => b.id === 'orphan')).toBeUndefined();
+    const allBlocks = groups.flatMap((g) => g.bundles.flatMap((b) => b.blocks));
+    expect(allBlocks.find((b) => b.id === 'orphan')).toBeUndefined();
   });
 });
 
@@ -125,7 +122,7 @@ describe('loadProjectCatalog', () => {
     const dir = await makeProject();
     await writeFile(join(dir, '.forge', 'catalog', 'catalog.yml'), 'broken: [\n  unclosed', 'utf-8');
     try {
-      const err = await loadProjectCatalog(dir).catch(e => e);
+      const err = await loadProjectCatalog(dir).catch((e) => e);
       expect(err).toBeInstanceOf(ForgeError);
       expect(err.code).toBe('INVALID_CATALOG');
     } finally {
@@ -135,11 +132,7 @@ describe('loadProjectCatalog', () => {
 
   it('정상 catalog.yml은 파싱되어 반환된다', async () => {
     const dir = await makeProject();
-    await writeFile(
-      join(dir, '.forge', 'catalog', 'catalog.yml'),
-      'worlds: []\nbundles: []\nblocks: []\n',
-      'utf-8',
-    );
+    await writeFile(join(dir, '.forge', 'catalog', 'catalog.yml'), 'worlds: []\nbundles: []\nblocks: []\n', 'utf-8');
     try {
       const cat = await loadProjectCatalog(dir);
       expect(cat).toEqual({ worlds: [], bundles: [], blocks: [] });
