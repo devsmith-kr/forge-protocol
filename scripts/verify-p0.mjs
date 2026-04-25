@@ -9,6 +9,8 @@ import yaml from 'js-yaml';
 import { collectConcerns, buildConcernFragments } from '../shared/concerns.js';
 import { pickArchitectureStyle } from '../shared/architecture-style.js';
 import { inferEndpoints } from '../shared/api-inference.js';
+import { decideLayout } from '../shared/multi-module/layout.js';
+import { generateDomainBuildGradle } from '../shared/multi-module/gradle.js';
 import { CatalogSchema } from '../lib/schemas.js';
 
 const GREEN = '\x1b[32m', RED = '\x1b[31m', DIM = '\x1b[2m', RESET = '\x1b[0m';
@@ -88,6 +90,72 @@ for (const c of cases) {
   const r = CatalogSchema.safeParse(c.data);
   check(r.success === !c.shouldFail, c.name, `${c.name} 실패 (success=${r.success})`);
 }
+
+// ── P0-5: 멀티모듈 emit 의존성 그래프 (v0.5.0) ──────────
+head('P0-5: 멀티모듈 layout + 도메인 경계');
+
+// commerce 카탈로그를 World→group 으로 변환 (catalog 의 slug 가 살아있는지 함께 검증)
+const commerceText = await readFile('./templates/commerce/catalog.yml', 'utf-8');
+const commerce = yaml.load(commerceText);
+const groupsCommerce = commerce.worlds.map((w) => ({ service: w.title, slug: w.slug }));
+
+const layoutCommerce = decideLayout({
+  groups: groupsCommerce,
+  archStyle: 'modular-monolith',
+  layoutOption: 'multi-module',
+});
+
+check(
+  layoutCommerce.kind === 'multi-module',
+  'commerce + modular-monolith → multi-module 레이아웃',
+  `multi-module 결정 실패 (kind=${layoutCommerce.kind})`,
+);
+
+const moduleNames = layoutCommerce.modules.map((m) => m.name);
+check(moduleNames.includes('core'), ':core 모듈 존재', ':core 누락');
+check(moduleNames.includes('app'), ':app 모듈 존재', ':app 누락');
+
+const domainModules = layoutCommerce.modules.filter((m) => m.kind === 'domain');
+check(
+  domainModules.length === commerce.worlds.length,
+  `domain 모듈 갯수 = catalog World 갯수 (${commerce.worlds.length}개)`,
+  `갯수 불일치: domains=${domainModules.length}, worlds=${commerce.worlds.length}`,
+);
+
+// AI 슬러그(catalog 의 marketplace/storefront/...) 가 자동 slugify 보다 우선했는지
+check(
+  domainModules.some((m) => m.slug === 'marketplace'),
+  'AI 슬러그 우선 (W-seller → marketplace, slugifyDomain fallback 미발생)',
+  'AI 슬러그 적용 실패 — catalog World.slug 무시됨',
+);
+
+// 각 domain build.gradle 이 다른 domain 모듈 ID 를 0건 참조 (3중 방어선의 1번)
+let crossDomainViolations = 0;
+for (const dm of domainModules) {
+  const buildGradle = generateDomainBuildGradle(dm);
+  for (const other of domainModules) {
+    if (other.name === dm.name) continue;
+    if (buildGradle.includes(other.name)) {
+      crossDomainViolations++;
+      console.log(`  ${RED}!${RESET} ${dm.name}/build.gradle 가 ${other.name} 참조`);
+    }
+  }
+}
+const crossChecks = domainModules.length * Math.max(domainModules.length - 1, 0);
+check(
+  crossDomainViolations === 0,
+  `domain build.gradle 의 cross-domain 참조 0건 (${domainModules.length}개 × ${domainModules.length - 1}개 검사)`,
+  `cross-domain 의존성 ${crossDomainViolations}건 발견 — 경계 위반`,
+);
+
+// :core 만 implementation 단정 (스팟 체크)
+const sampleDomain = domainModules[0];
+const sampleBuildGradle = generateDomainBuildGradle(sampleDomain);
+check(
+  sampleBuildGradle.includes("implementation project(':core')"),
+  `${sampleDomain.name} 가 :core 의존성 보유`,
+  `${sampleDomain.name} build.gradle 에 :core 누락`,
+);
 
 // ── 요약 ──
 console.log();
