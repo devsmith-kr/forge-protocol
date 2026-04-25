@@ -85,9 +85,6 @@ jobs:
   web-build:
     name: Web UI Build
     runs-on: ubuntu-latest
-    # main 부터 vite 의 import-analysis 가 promptGenerator.js 의 generic-like
-    # syntax 를 invalid 로 보는 이슈가 있어 별도 PR 에서 정리. 그동안 비차단.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -98,7 +95,12 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
+      # web/ 가 ../shared/api-inference.js 를 import 하는데 shared 의 transitive deps
+      # (pluralize 등) 가 root node_modules 에서 resolve 되어야 한다. root install 필수.
+      - name: Install root dependencies (for shared/ transitive)
+        run: npm install --no-audit --no-fund --prefer-offline
+
+      - name: Install web dependencies
         working-directory: web
         run: npm install --no-audit --no-fund --prefer-offline --include=optional
 
