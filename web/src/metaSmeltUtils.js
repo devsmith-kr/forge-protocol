@@ -1,5 +1,10 @@
 // metaSmeltUtils.js — 프롬프트 빌더 + Claude 응답 파서
 
+// CLI(`lib/meta-smelt.js`)와 동일한 프롬프트를 출력하기 위해 shared 모듈에서 re-export.
+// MetaSmeltPhase.jsx 의 Quick/Deep 핸들러가 이 두 함수를 호출한다.
+export { buildQuickCatalogPrompt, buildDeepCatalogPrompt } from '../../shared/meta-smelt-prompts.js';
+
+
 // ── 카탈로그 자동 생성 프롬프트 ───────────────────────────
 export function buildCatalogGenerationPrompt(domainDescription) {
   return `# Forge Protocol — 카탈로그 자동 생성 요청

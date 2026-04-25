@@ -85,9 +85,6 @@ jobs:
   web-build:
     name: Web UI Build
     runs-on: ubuntu-latest
-    # main 부터 vite 의 import-analysis 가 promptGenerator.js 의 generic-like
-    # syntax 를 invalid 로 보는 이슈가 있어 별도 PR 에서 정리. 그동안 비차단.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 

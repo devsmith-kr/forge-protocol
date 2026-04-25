@@ -29,6 +29,18 @@ function formatBlockList(blocks) {
     .join('\n')
 }
 
+/**
+ * 선택된 블럭의 concerns 기반으로 phase 별 추가 지침 섹션을 만든다.
+ * outer template literal 안에 nested backtick 을 두면 vite/rollup parser 가
+ * 처리 못해 빌드 실패하므로, 여기서 모두 처리해 string 만 반환한다.
+ */
+function buildConcernsSection(blocks, phase, headerLine) {
+  const fragments = buildConcernFragments(collectConcerns(blocks), phase);
+  if (!fragments.length) return '';
+  const bullets = fragments.map((f) => `- ${f}`).join('\n');
+  return `\n${headerLine}\n\n${bullets}\n`;
+}
+
 function formatTechStack(blocks) {
   const src = blocks.map(b => b.tech_desc || '').join(' ')
   const stack = {}
@@ -125,10 +137,7 @@ ${decisionList || '(없음)'}
 - 각 블럭의 핵심 API 엔드포인트를 최소 1개씩 명시해주세요.
 - 데이터 모델에서 가장 복잡한 관계(N:M, 상태머신 등)를 집중 설명해주세요.
 - 초기 배포 아키텍처(최소 비용으로 시작하는 방법)도 포함해주세요.
-${(() => {
-  const bullets = buildConcernFragments(collectConcerns(blocks), 'shape').map(f => \`- \${f}\`).join('\\n')
-  return bullets ? '\\n### 도메인 특수 고려사항 (선택된 블럭 기반 자동 감지)\\n\\n' + bullets + '\\n' : ''
-})()}`
+${buildConcernsSection(blocks, 'shape', '### 도메인 특수 고려사항 (선택된 블럭 기반 자동 감지)')}`
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -518,10 +527,7 @@ ${scenarioBlocks}
 **추가 요청사항:**
 - 각 테스트 파일 앞에 \`// === BLOCK: {block_id} ===\` 헤더 추가.
 - 모든 테스트는 \`.forge/generated/\` 하위의 소스 코드를 대상으로 작성해주세요.
-${(() => {
-  const bullets = buildConcernFragments(collectConcerns(blocks), 'temper').map(f => \`- \${f}\`).join('\\n')
-  return bullets ? '\\n**선택된 블럭에 적용되는 도메인 특수 지침:**\\n' + bullets + '\\n' : ''
-})()}`
+${buildConcernsSection(blocks, 'temper', '**선택된 블럭에 적용되는 도메인 특수 지침:**')}`
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -613,10 +619,7 @@ ${findingsText}
 - 현재 아키텍처에서 트래픽 10배 증가 시 병목이 될 위치를 예측하세요.
 - 단일장애점을 제거하기 위한 아키텍처 변경안을 제시하세요.
 - 이벤트 기반 아키텍처로의 점진적 전환 로드맵을 제안하세요.
-${(() => {
-  const bullets = buildConcernFragments(collectConcerns(blocks), 'inspect').map(f => \`- \${f}\`).join('\\n')
-  return bullets ? '\\n#### 도메인 특수 검수 요청 (선택된 블럭 기반 자동 감지)\\n' + bullets : ''
-})()}
+${buildConcernsSection(blocks, 'inspect', '#### 도메인 특수 검수 요청 (선택된 블럭 기반 자동 감지)')}
 
 ---
 
