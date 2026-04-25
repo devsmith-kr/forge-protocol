@@ -95,7 +95,12 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
+      # web/ 가 ../shared/api-inference.js 를 import 하는데 shared 의 transitive deps
+      # (pluralize 등) 가 root node_modules 에서 resolve 되어야 한다. root install 필수.
+      - name: Install root dependencies (for shared/ transitive)
+        run: npm install --no-audit --no-fund --prefer-offline
+
+      - name: Install web dependencies
         working-directory: web
         run: npm install --no-audit --no-fund --prefer-offline --include=optional
 
