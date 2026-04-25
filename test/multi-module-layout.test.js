@@ -103,10 +103,7 @@ describe('decideLayout — 자동 판단 (layoutOption 미지정)', () => {
 describe('decideLayout — 슬러그 처리', () => {
   it('group.slug 명시값이 service slugify 보다 우선', () => {
     const result = decideLayout({
-      groups: [
-        { service: 'Seller Marketplace', slug: 'mkt' },
-        { service: 'Buyer World' },
-      ],
+      groups: [{ service: 'Seller Marketplace', slug: 'mkt' }, { service: 'Buyer World' }],
       layoutOption: 'multi-module',
     });
     const seller = result.modules.find((m) => m.kind === 'domain' && m.slug === 'mkt');

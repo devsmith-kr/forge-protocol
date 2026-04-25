@@ -14,12 +14,19 @@ function makeBlock(id, name, opts = {}) {
 }
 
 const SAMPLE_BLOCKS = [
-  makeBlock('product-register', '상품 등록', { analogy: '매장 진열', user_desc: '판매할 상품 정보를 입력하고 등록하는 기능' }),
+  makeBlock('product-register', '상품 등록', {
+    analogy: '매장 진열',
+    user_desc: '판매할 상품 정보를 입력하고 등록하는 기능',
+  }),
   makeBlock('cart', '장바구니', { analogy: '마트 쇼핑카트', user_desc: '구매할 상품을 담아두는 기능' }),
   makeBlock('payment', '결제', { analogy: '계산대', user_desc: 'PG 연동 결제 처리' }),
   makeBlock('order', '주문', { analogy: '주문서 작성', user_desc: '주문 생성 및 상태 관리' }),
   makeBlock('buyer-signup', '회원가입', { analogy: '회원카드 발급', user_desc: 'JWT + OAuth2 인증' }),
-  makeBlock('inventory-manage', '재고 관리', { analogy: '창고 관리', user_desc: '재고 수량 추적 및 관리', tech_desc: 'Optimistic Lock' }),
+  makeBlock('inventory-manage', '재고 관리', {
+    analogy: '창고 관리',
+    user_desc: '재고 수량 추적 및 관리',
+    tech_desc: 'Optimistic Lock',
+  }),
 ];
 
 const SAMPLE_CATALOG = { blocks: SAMPLE_BLOCKS };
@@ -184,7 +191,7 @@ describe('mapPlanToCatalog', () => {
       ],
     };
     const result = mapPlanToCatalog(plan, SAMPLE_CATALOG);
-    const paymentCount = result.allMappedBlockIds.filter(id => id === 'payment').length;
+    const paymentCount = result.allMappedBlockIds.filter((id) => id === 'payment').length;
     expect(paymentCount).toBe(1);
   });
 

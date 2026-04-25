@@ -30,14 +30,14 @@ describe('빌트인 템플릿', () => {
       });
 
       it('모든 block 이 유효한 bundle_id 를 가짐 (참조 무결성)', () => {
-        const bundleIds = new Set(catalog.bundles.map(b => b.id));
+        const bundleIds = new Set(catalog.bundles.map((b) => b.id));
         for (const block of catalog.blocks) {
           expect(bundleIds.has(block.bundle_id)).toBe(true);
         }
       });
 
       it('모든 bundle 이 유효한 world_id 를 가짐', () => {
-        const worldIds = new Set(catalog.worlds.map(w => w.id));
+        const worldIds = new Set(catalog.worlds.map((w) => w.id));
         for (const bundle of catalog.bundles) {
           expect(worldIds.has(bundle.world_id)).toBe(true);
         }
@@ -68,7 +68,7 @@ describe('job-aggregator 템플릿 상세', () => {
   });
 
   it('api_style 어노테이션이 주요 블럭에 부여됨', () => {
-    const byId = Object.fromEntries(catalog.blocks.map(b => [b.id, b]));
+    const byId = Object.fromEntries(catalog.blocks.map((b) => [b.id, b]));
     // internal 블럭은 REST 엔드포인트 생성 제외 대상
     // 참고: api_style 명시 없어도 inferApiStyle 이 키워드로 internal 판정 가능
     const crawler = byId['source-crawler'];

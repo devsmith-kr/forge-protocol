@@ -18,11 +18,7 @@ import {
 } from '../shared/multi-module/gradle.js';
 
 const sampleLayout = decideLayout({
-  groups: [
-    { service: 'Seller World' },
-    { service: 'Buyer World' },
-    { service: 'Payment World' },
-  ],
+  groups: [{ service: 'Seller World' }, { service: 'Buyer World' }, { service: 'Payment World' }],
   layoutOption: 'multi-module',
 });
 
@@ -106,10 +102,8 @@ describe('generateCoreBuildGradle', () => {
 });
 
 describe('generateDomainBuildGradle — 경계 강제', () => {
-  it(":core 만 implementation, 다른 domain 모듈 ID 0건 (핵심 불변식)", () => {
-    const sellerOut = generateDomainBuildGradle(
-      domainModules.find((m) => m.slug === 'seller'),
-    );
+  it(':core 만 implementation, 다른 domain 모듈 ID 0건 (핵심 불변식)', () => {
+    const sellerOut = generateDomainBuildGradle(domainModules.find((m) => m.slug === 'seller'));
     expect(sellerOut).toContain("implementation project(':core')");
     // 다른 domain 모듈 이름이 절대 등장하면 안 됨
     expect(sellerOut).not.toContain('domain-buyer');
@@ -117,24 +111,18 @@ describe('generateDomainBuildGradle — 경계 강제', () => {
   });
 
   it('각 domain 본인 이름이 헤더 주석에 표기됨 (디버깅용)', () => {
-    const sellerOut = generateDomainBuildGradle(
-      domainModules.find((m) => m.slug === 'seller'),
-    );
+    const sellerOut = generateDomainBuildGradle(domainModules.find((m) => m.slug === 'seller'));
     expect(sellerOut).toContain('domain-seller');
     expect(sellerOut).toContain('Seller World');
   });
 
   it('archunit-junit5 testImplementation 자동 포함 (Step 7 연동)', () => {
-    const sellerOut = generateDomainBuildGradle(
-      domainModules.find((m) => m.slug === 'seller'),
-    );
+    const sellerOut = generateDomainBuildGradle(domainModules.find((m) => m.slug === 'seller'));
     expect(sellerOut).toMatch(/testImplementation\s+'com\.tngtech\.archunit:archunit-junit5:/);
   });
 
   it('spring-boot plugin 미적용 (부트 jar 는 :app 만)', () => {
-    const sellerOut = generateDomainBuildGradle(
-      domainModules.find((m) => m.slug === 'seller'),
-    );
+    const sellerOut = generateDomainBuildGradle(domainModules.find((m) => m.slug === 'seller'));
     expect(sellerOut).not.toContain("id 'org.springframework.boot'");
   });
 
@@ -160,7 +148,7 @@ describe('generateAppBuildGradle', () => {
     expect(out).toContain("implementation project(':domain-payment')");
   });
 
-  it("bootJar.mainClass 와 springBoot.mainClass 가 basePackage.Application 으로 일치", () => {
+  it('bootJar.mainClass 와 springBoot.mainClass 가 basePackage.Application 으로 일치', () => {
     const out = generateAppBuildGradle(sampleLayout.modules, {
       basePackage: 'com.acme.shop',
     });
@@ -172,9 +160,9 @@ describe('generateAppBuildGradle', () => {
 
   it('springdoc / h2 / web 의존성 포함', () => {
     const out = generateAppBuildGradle(sampleLayout.modules);
-    expect(out).toContain("springdoc-openapi-starter-webmvc-ui:2.5.0");
+    expect(out).toContain('springdoc-openapi-starter-webmvc-ui:2.5.0');
     expect(out).toContain("runtimeOnly 'com.h2database:h2'");
-    expect(out).toContain("spring-boot-starter-web");
+    expect(out).toContain('spring-boot-starter-web');
   });
 });
 

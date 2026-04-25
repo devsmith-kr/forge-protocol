@@ -23,9 +23,7 @@ const groups = [
   {
     service: 'Storefront',
     slug: 'storefront',
-    endpoints: [
-      { method: 'GET', path: '/api/v1/cart', body: '—', response: '200 { items, total }' },
-    ],
+    endpoints: [{ method: 'GET', path: '/api/v1/cart', body: '—', response: '200 { items, total }' }],
   },
 ];
 
@@ -43,7 +41,7 @@ describe('buildMultiModuleFiles — 순수 함수', () => {
     for (const f of files) {
       expect(typeof f.path).toBe('string');
       expect(typeof f.content).toBe('string');
-      expect(f.path).not.toMatch(/^\//);  // 절대 경로 없음
+      expect(f.path).not.toMatch(/^\//); // 절대 경로 없음
     }
   });
 
@@ -88,10 +86,16 @@ describe('buildMultiModuleFiles — 순수 함수', () => {
     const paths = files.map((f) => f.path);
     expect(paths).toContain('domain-marketplace/build.gradle');
     expect(paths).toContain('domain-marketplace/src/main/java/com/forge/app/marketplace/entity/Marketplace.java');
-    expect(paths).toContain('domain-marketplace/src/main/java/com/forge/app/marketplace/controller/MarketplaceController.java');
-    expect(paths).toContain('domain-marketplace/src/test/java/com/forge/app/marketplace/architecture/MarketplaceArchitectureTest.java');
+    expect(paths).toContain(
+      'domain-marketplace/src/main/java/com/forge/app/marketplace/controller/MarketplaceController.java',
+    );
+    expect(paths).toContain(
+      'domain-marketplace/src/test/java/com/forge/app/marketplace/architecture/MarketplaceArchitectureTest.java',
+    );
     expect(paths).toContain('domain-storefront/build.gradle');
-    expect(paths).toContain('domain-storefront/src/main/java/com/forge/app/storefront/controller/StorefrontController.java');
+    expect(paths).toContain(
+      'domain-storefront/src/main/java/com/forge/app/storefront/controller/StorefrontController.java',
+    );
   });
 
   it('Application.java 가 scanBasePackages 명시', () => {

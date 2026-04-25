@@ -10,11 +10,11 @@ import { methodName, reqDtoName, respDtoName, classNameOf } from '../shared/name
 
 describe('methodName — CRUD (단일 segment)', () => {
   it.each([
-    ['GET',    '/api/v1/products',     'listProducts'],
-    ['GET',    '/api/v1/products/{id}', 'getProduct'],
-    ['POST',   '/api/v1/products',     'createProduct'],
-    ['PUT',    '/api/v1/products/{id}', 'updateProduct'],
-    ['PATCH',  '/api/v1/products/{id}', 'patchProduct'],
+    ['GET', '/api/v1/products', 'listProducts'],
+    ['GET', '/api/v1/products/{id}', 'getProduct'],
+    ['POST', '/api/v1/products', 'createProduct'],
+    ['PUT', '/api/v1/products/{id}', 'updateProduct'],
+    ['PATCH', '/api/v1/products/{id}', 'patchProduct'],
     ['DELETE', '/api/v1/products/{id}', 'deleteProduct'],
   ])('%s %s → %s', (m, p, expected) => {
     expect(methodName(m, p)).toBe(expected);
@@ -39,9 +39,9 @@ describe('methodName — action (resource prefix 충돌 방지)', () => {
 
 describe('methodName — auth/oauth 표준 그룹은 prefix 없이', () => {
   it.each([
-    ['POST', '/api/v1/auth/login',   'login'],
-    ['POST', '/api/v1/auth/signup',  'signup'],
-    ['POST', '/api/v1/auth/logout',  'logout'],
+    ['POST', '/api/v1/auth/login', 'login'],
+    ['POST', '/api/v1/auth/signup', 'signup'],
+    ['POST', '/api/v1/auth/logout', 'logout'],
     ['POST', '/api/v1/auth/refresh', 'refresh'],
     ['POST', '/api/v1/oauth/callback', 'callback'],
     ['POST', '/api/v1/webhook/payment', 'payment'],
@@ -93,4 +93,3 @@ describe('classNameOf — 한글 service fallback', () => {
     expect(classNameOf({})).toBe('Resource');
   });
 });
-

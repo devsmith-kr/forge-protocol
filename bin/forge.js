@@ -45,15 +45,9 @@ program
   .description(chalk.bold('⚒  Forge Protocol') + ' — 바이브코딩 2.0 CLI')
   .version(VERSION);
 
-program
-  .command('init')
-  .description('프로젝트 초기화 (.forge/ 디렉토리 생성)')
-  .action(wrap(initProject));
+program.command('init').description('프로젝트 초기화 (.forge/ 디렉토리 생성)').action(wrap(initProject));
 
-program
-  .command('status')
-  .description('현재 프로젝트 상태 대시보드')
-  .action(wrap(showStatus));
+program.command('status').description('현재 프로젝트 상태 대시보드').action(wrap(showStatus));
 
 program
   .command('meta-smelt')
@@ -62,10 +56,7 @@ program
   .option('--deep', '6단계 정밀 설문 (5분). 모드 선택 단계를 건너뜀.')
   .action(wrap(runMetaSmelt));
 
-program
-  .command('smelt')
-  .description('Phase 1: 제련 — 블럭 선택 + 의존성 해결')
-  .action(wrap(runSmelt));
+program.command('smelt').description('Phase 1: 제련 — 블럭 선택 + 의존성 해결').action(wrap(runSmelt));
 
 program
   .command('assemble')
@@ -73,25 +64,13 @@ program
   .option('-p, --plan <file>', '플랜 파일 경로 (roadmap.md 또는 roadmap.yml)')
   .action(wrap(runAssemble));
 
-program
-  .command('shape')
-  .description('Phase 2: 성형 — 아키텍처 결정 + AI 설계 프롬프트')
-  .action(wrap(runShape));
+program.command('shape').description('Phase 2: 성형 — 아키텍처 결정 + AI 설계 프롬프트').action(wrap(runShape));
 
-program
-  .command('forge')
-  .description('Phase 3: 단조 — API 계약 + 코드 생성 프롬프트')
-  .action(wrap(runBuild));
+program.command('forge').description('Phase 3: 단조 — API 계약 + 코드 생성 프롬프트').action(wrap(runBuild));
 
-program
-  .command('temper')
-  .description('Phase 4: 담금질 — Given-When-Then 테스트 시나리오')
-  .action(wrap(runTemper));
+program.command('temper').description('Phase 4: 담금질 — Given-When-Then 테스트 시나리오').action(wrap(runTemper));
 
-program
-  .command('inspect')
-  .description('Phase 5: 검수 — 보안/성능/운영/확장성 멀티 관점 리뷰')
-  .action(wrap(runInspect));
+program.command('inspect').description('Phase 5: 검수 — 보안/성능/운영/확장성 멀티 관점 리뷰').action(wrap(runInspect));
 
 program
   .command('emit')
@@ -109,7 +88,7 @@ program
 // ── 인자 없이 실행 시: 인터랙티브 메인 메뉴 ──────────────
 async function runInteractiveMenu() {
   const projectDir = process.cwd();
-  const forgeDir   = join(projectDir, '.forge');
+  const forgeDir = join(projectDir, '.forge');
 
   let state = null;
   try {
@@ -134,8 +113,8 @@ async function runInteractiveMenu() {
     // Phase bar + 진행도
     console.log(phaseBar(state.phase));
     console.log();
-    const phases    = getPhaseStatus(state.phase);
-    const doneCount = phases.filter(p => p.done).length;
+    const phases = getPhaseStatus(state.phase);
+    const doneCount = phases.filter((p) => p.done).length;
     console.log(progressBar(doneCount, PHASES.length));
     console.log();
 
@@ -143,7 +122,9 @@ async function runInteractiveMenu() {
       chalk.bold(state.project_name ?? ''),
       state.template ? chalk.cyan(state.template) : '',
       state.selected_blocks_count ? chalk.dim(`블럭 ${state.selected_blocks_count}개`) : '',
-    ].filter(Boolean).join('  ·  ');
+    ]
+      .filter(Boolean)
+      .join('  ·  ');
     console.log('  ' + projectInfo);
   } else {
     console.log('  ' + chalk.dim('아직 초기화되지 않은 디렉토리입니다.'));
@@ -154,13 +135,15 @@ async function runInteractiveMenu() {
   // ── 메뉴 선택지 구성 ──
   const choices = buildMenuChoices(state);
 
-  const { action } = await inquirer.prompt([{
-    type:    'list',
-    name:    'action',
-    message: '무엇을 하시겠어요?',
-    choices,
-    pageSize: 12,
-  }]);
+  const { action } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: '무엇을 하시겠어요?',
+      choices,
+      pageSize: 12,
+    },
+  ]);
 
   if (action === '__exit__') {
     console.log(chalk.dim('\n  종료합니다.\n'));
@@ -175,12 +158,12 @@ async function runInteractiveMenu() {
 
   const handlers = {
     'forge meta-smelt': runMetaSmelt,
-    'forge smelt':      runSmelt,
-    'forge shape':      runShape,
-    'forge forge':      runBuild,
-    'forge temper':     runTemper,
-    'forge inspect':    runInspect,
-    'forge status':     showStatus,
+    'forge smelt': runSmelt,
+    'forge shape': runShape,
+    'forge forge': runBuild,
+    'forge temper': runTemper,
+    'forge inspect': runInspect,
+    'forge status': showStatus,
   };
 
   const handler = handlers[action];
@@ -193,12 +176,12 @@ async function runInteractiveMenu() {
 
 function buildMenuChoices(state) {
   const Separator = inquirer.Separator;
-  const choices   = [];
+  const choices = [];
 
   if (!state) {
     // 미초기화 상태
     choices.push({
-      name:  chalk.hex('#f97316').bold('⚒   forge init') + chalk.dim('  —  프로젝트 초기화'),
+      name: chalk.hex('#f97316').bold('⚒   forge init') + chalk.dim('  —  프로젝트 초기화'),
       value: 'forge init',
     });
     choices.push(new Separator(chalk.dim('  ─────────────────────────────────────────')));
@@ -208,27 +191,27 @@ function buildMenuChoices(state) {
   }
 
   const phases = getPhaseStatus(state.phase);
-  const next   = getNextPhase(state.phase);
+  const next = getNextPhase(state.phase);
 
   for (const p of phases) {
     const isNext = p.cmd === next?.cmd;
     let prefix, nameStr;
 
     if (p.done) {
-      prefix  = chalk.green('✅ ');
+      prefix = chalk.green('✅ ');
       nameStr = chalk.green(p.label) + chalk.dim(`  —  ${p.ko} 완료`);
     } else if (isNext) {
-      prefix  = chalk.hex('#f97316').bold('▶  ');
+      prefix = chalk.hex('#f97316').bold('▶  ');
       nameStr = chalk.hex('#f97316').bold(p.label) + chalk.dim(`  —  ${p.ko}  ← 다음 단계`);
     } else {
-      prefix  = chalk.dim('   ');
+      prefix = chalk.dim('   ');
       nameStr = chalk.dim(`${p.label}  —  ${p.ko}  (이전 Phase 완료 후)`);
     }
 
     choices.push({
-      name:     `  ${prefix} ${nameStr}`,
-      value:    p.cmd,
-      disabled: (!p.done && !isNext) ? chalk.dim('잠김') : false,
+      name: `  ${prefix} ${nameStr}`,
+      value: p.cmd,
+      disabled: !p.done && !isNext ? chalk.dim('잠김') : false,
     });
   }
 
@@ -244,7 +227,7 @@ const hasArgs = process.argv.slice(2).length > 0;
 if (hasArgs) {
   program.parse();
 } else {
-  runInteractiveMenu().catch(e => {
+  runInteractiveMenu().catch((e) => {
     if (e.isTtyError || e.message?.includes('User force closed')) {
       console.log(chalk.dim('\n  종료합니다.\n'));
       process.exit(0);

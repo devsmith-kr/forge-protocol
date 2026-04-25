@@ -39,27 +39,19 @@ describe('coreFiles — 파일 갯수/경로', () => {
   it('relPath 가 src/main/java/{basePackage}/core/{서브패키지}/ 구조', () => {
     const files = coreFiles('com.forge.app');
     const baseEntity = findFile(files, 'BaseEntity');
-    expect(baseEntity.relPath).toBe(
-      'src/main/java/com/forge/app/core/entity/BaseEntity.java',
-    );
+    expect(baseEntity.relPath).toBe('src/main/java/com/forge/app/core/entity/BaseEntity.java');
 
     const commonResp = findFile(files, 'CommonResponse');
-    expect(commonResp.relPath).toBe(
-      'src/main/java/com/forge/app/core/web/CommonResponse.java',
-    );
+    expect(commonResp.relPath).toBe('src/main/java/com/forge/app/core/web/CommonResponse.java');
 
     const handler = findFile(files, 'GlobalExceptionHandler');
-    expect(handler.relPath).toBe(
-      'src/main/java/com/forge/app/core/exception/GlobalExceptionHandler.java',
-    );
+    expect(handler.relPath).toBe('src/main/java/com/forge/app/core/exception/GlobalExceptionHandler.java');
   });
 
   it('basePackage 변경 시 디렉토리 구조도 변경', () => {
     const files = coreFiles('com.acme.shop');
     const baseEntity = findFile(files, 'BaseEntity');
-    expect(baseEntity.relPath).toBe(
-      'src/main/java/com/acme/shop/core/entity/BaseEntity.java',
-    );
+    expect(baseEntity.relPath).toBe('src/main/java/com/acme/shop/core/entity/BaseEntity.java');
     expect(baseEntity.content).toContain('package com.acme.shop.core.entity;');
   });
 
@@ -107,7 +99,7 @@ describe('CommonResponse — Java record + factory 메서드', () => {
     expect(content).toContain('T data');
   });
 
-  it("ok(data) / ok() / error(code, msg) static factory", () => {
+  it('ok(data) / ok() / error(code, msg) static factory', () => {
     expect(content).toMatch(/public static <T> CommonResponse<T> ok\(T data\)/);
     expect(content).toMatch(/public static <T> CommonResponse<T> ok\(\)/);
     expect(content).toMatch(/public static <T> CommonResponse<T> error\(String code, String message\)/);

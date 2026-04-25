@@ -26,31 +26,17 @@ const findDomain = (slug) => domainModules.find((m) => m.slug === slug);
 
 describe('domainBoundaryTestFile — relPath 구조', () => {
   it('상대 경로가 src/test/java/{basePkg}/{segment}/architecture/{Class}ArchitectureTest.java', () => {
-    const { relPath } = domainBoundaryTestFile(
-      findDomain('marketplace'),
-      domainModules,
-      'com.forge.app',
-    );
-    expect(relPath).toBe(
-      'src/test/java/com/forge/app/marketplace/architecture/MarketplaceArchitectureTest.java',
-    );
+    const { relPath } = domainBoundaryTestFile(findDomain('marketplace'), domainModules, 'com.forge.app');
+    expect(relPath).toBe('src/test/java/com/forge/app/marketplace/architecture/MarketplaceArchitectureTest.java');
   });
 
   it('basePackage 변경 시 디렉토리도 따라감', () => {
-    const { relPath } = domainBoundaryTestFile(
-      findDomain('billing'),
-      domainModules,
-      'com.acme.shop',
-    );
-    expect(relPath).toBe(
-      'src/test/java/com/acme/shop/billing/architecture/BillingArchitectureTest.java',
-    );
+    const { relPath } = domainBoundaryTestFile(findDomain('billing'), domainModules, 'com.acme.shop');
+    expect(relPath).toBe('src/test/java/com/acme/shop/billing/architecture/BillingArchitectureTest.java');
   });
 
   it('domain kind 가 아닌 모듈 입력 시 throw', () => {
-    expect(() =>
-      domainBoundaryTestFile({ kind: 'app', slug: 'app' }, [], 'com.forge.app'),
-    ).toThrow(/domain kind/);
+    expect(() => domainBoundaryTestFile({ kind: 'app', slug: 'app' }, [], 'com.forge.app')).toThrow(/domain kind/);
   });
 });
 

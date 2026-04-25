@@ -78,7 +78,7 @@ describe('pickArchitectureStyle — 과설계 차단', () => {
       blockCount: 17,
       teamSize: 1,
       totalEffortDays: 58,
-      forceStyle: 'quantum-mesh',  // 존재하지 않는 스타일
+      forceStyle: 'quantum-mesh', // 존재하지 않는 스타일
     });
     expect(result.style).toBe('modular-monolith');
   });

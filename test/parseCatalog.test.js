@@ -80,7 +80,7 @@ describe('parseCatalogYml', () => {
   it('all 월드가 없으면 자동 추가', () => {
     const catalog = parseCatalogYml(VALID_YAML);
 
-    const allWorld = catalog.worlds.find(w => w.id === 'all');
+    const allWorld = catalog.worlds.find((w) => w.id === 'all');
     expect(allWorld).toBeDefined();
     expect(allWorld.title).toBe('전체 보기');
   });
@@ -102,7 +102,7 @@ blocks:
     name: 블럭 1
 `;
     const catalog = parseCatalogYml(yamlWithAll);
-    const allWorlds = catalog.worlds.filter(w => w.id === 'all');
+    const allWorlds = catalog.worlds.filter((w) => w.id === 'all');
     expect(allWorlds).toHaveLength(1);
   });
 
@@ -164,7 +164,7 @@ describe('validateCatalog', () => {
       blocks: [{ bundle_id: 'b', name: 'no-id' }],
       bundles: [{ id: 'b' }],
     });
-    expect(errors.some(e => e.includes('id가 없습니다'))).toBe(true);
+    expect(errors.some((e) => e.includes('id가 없습니다'))).toBe(true);
   });
 
   it('블럭에 bundle_id 없으면 에러', () => {
@@ -172,6 +172,6 @@ describe('validateCatalog', () => {
       blocks: [{ id: 'x', name: 'no-bundle' }],
       bundles: [{ id: 'b' }],
     });
-    expect(errors.some(e => e.includes('bundle_id가 없습니다'))).toBe(true);
+    expect(errors.some((e) => e.includes('bundle_id가 없습니다'))).toBe(true);
   });
 });

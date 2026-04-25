@@ -42,9 +42,7 @@ const groups = [
   {
     service: 'Billing',
     slug: 'billing',
-    endpoints: [
-      sellerEndpoint('/api/v1/payments', 'POST', '{ orderId, amount }', '201 { id, status }'),
-    ],
+    endpoints: [sellerEndpoint('/api/v1/payments', 'POST', '{ orderId, amount }', '201 { id, status }')],
   },
 ];
 
@@ -85,9 +83,7 @@ const scenarios = {
     {
       block_id: 'payment',
       block_name: '결제',
-      scenarios: [
-        { name: '결제 정상 흐름', given: 'an order', when: 'POST /payments', then: '201', type: 'happy' },
-      ],
+      scenarios: [{ name: '결제 정상 흐름', given: 'an order', when: 'POST /payments', then: '201', type: 'happy' }],
     },
   ],
 };
@@ -268,15 +264,11 @@ describe(':domain-storefront, :domain-billing 도 동일 구조', () => {
 
 describe('GWT 테스트 emit — block 의 World → 모듈 매칭', () => {
   it('products 블럭은 marketplace 모듈의 src/test 에 emit', async () => {
-    expect(
-      await fileExists('domain-marketplace/src/test/java/com/forge/app/ProductsTest.java'),
-    ).toBe(true);
+    expect(await fileExists('domain-marketplace/src/test/java/com/forge/app/ProductsTest.java')).toBe(true);
   });
 
   it('payment 블럭은 billing 모듈의 src/test 에 emit', async () => {
-    expect(
-      await fileExists('domain-billing/src/test/java/com/forge/app/PaymentTest.java'),
-    ).toBe(true);
+    expect(await fileExists('domain-billing/src/test/java/com/forge/app/PaymentTest.java')).toBe(true);
   });
 });
 

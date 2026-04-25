@@ -69,7 +69,11 @@ describe('runEmit 라우팅 — decideLayout 결과', () => {
 
   it('layoutOption: "multi-module" + 3 groups → kind=multi-module', () => {
     const layout = decideLayout({
-      groups: [{ service: 'A', slug: 'a' }, { service: 'B', slug: 'b' }, { service: 'C', slug: 'c' }],
+      groups: [
+        { service: 'A', slug: 'a' },
+        { service: 'B', slug: 'b' },
+        { service: 'C', slug: 'c' },
+      ],
       layoutOption: 'multi-module',
     });
     expect(layout.kind).toBe('multi-module');
