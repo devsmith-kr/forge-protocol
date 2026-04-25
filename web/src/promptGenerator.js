@@ -296,7 +296,7 @@ export function generateBuildExecutionPrompt(allSelected, catalogData, outputDir
   - 상태 필드: @Enumerated(EnumType.STRING)
   - 생성/수정일: @CreatedDate, @LastModifiedDate (@EntityListeners)
   - 동시성: @Version (Optimistic Lock이 필요한 경우)
-- **API 응답**: ResponseEntity<T> 사용, 성공/실패 일관된 응답 구조
+- **API 응답**: ResponseEntity 제네릭 (T) 사용, 성공/실패 일관된 응답 구조
 - **Validation**: @Valid + Jakarta Validation 어노테이션 (@NotBlank, @Positive 등)
 - **한국어 주석**: 핵심 비즈니스 로직에만 간결한 한국어 주석
 
