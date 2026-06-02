@@ -50,6 +50,7 @@
     "url": "https://github.com/devsmith-kr/forge-protocol/issues"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "inquirer": "^9.3.0",
