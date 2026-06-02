@@ -49,6 +49,7 @@ lib/
     ui.js                 # 리치 CLI UI 엔진 (phaseBar, dashboard, commandHeader 등)
     errors.js             # 표준 에러/예외 클래스
     version.js            # CLI 버전 상수
+    claude-client.js      # Claude API 클라이언트 (--ai 플래그용: 프롬프트 파싱 + 스트리밍 호출 + 응답 저장)
   init.js                 # forge init — .forge/ 디렉토리 구조만 생성
   meta-smelt.js           # forge meta-smelt — 카탈로그 확정 (빌트인 commerce/job-aggregator/AI)
   smelt.js                # forge smelt — 대화형 블럭 선택 (draft 저장/복원)
@@ -100,10 +101,10 @@ scripts/
 - `forge meta-smelt` — Step 0: 빌트인 선택(즉시 catalog 복사) or AI 커스텀 생성. AI 모드는 Quick(자유 입력 1번) / Deep(6단계 정밀 설문) 중 선택. `--quick` / `--deep` 플래그로 모드 선택 단계 스킵 가능
 - `forge smelt` — 블럭 선택→의존성 해결→결정사항→W0 준비물→intent.yml (World별 draft 저장/복원)
 - `forge assemble` — 플랜 파일(md/yml) → 블럭 자동 조립 → roadmap.yml + intent.yml
-- `forge shape` — 블럭 특성 자동 감지 + 기술 스택 결정 → architecture.yml + architecture-prompt.md
-- `forge forge` — API 계약 자동 추론 → contracts.yml + build-prompt.md
-- `forge temper` — 블럭별 Given-When-Then 시나리오 생성 → test-scenarios.yml + temper-prompt.md
-- `forge inspect` — 보안/성능/운영/확장성 자동 감지 → forge-report.md + inspect-prompt.md
+- `forge shape` — 블럭 특성 자동 감지 + 기술 스택 결정 → architecture.yml + architecture-prompt.md (`--ai`로 Claude API 자동 호출)
+- `forge forge` — API 계약 자동 추론 → contracts.yml + build-prompt.md (`--ai`로 Claude API 자동 호출)
+- `forge temper` — 블럭별 Given-When-Then 시나리오 생성 → test-scenarios.yml + temper-prompt.md (`--ai`로 Claude API 자동 호출)
+- `forge inspect` — 보안/성능/운영/확장성 자동 감지 → forge-report.md + inspect-prompt.md (`--ai`로 Claude API 자동 호출)
 - `forge emit` — `contracts.yml` + `test-scenarios.yml` → `.forge/generated/backend/` 실제 파일 기록 (`--target backend|tests|all`, `--build gradle|maven`)
 - `forge verify` — `.forge/generated/backend/` 의 Java 코드가 실제 컴파일·테스트 통과하는지 확인 → verify-report.json [P1-2]
 - `forge status` — 리치 대시보드 (phaseBar + 진행도 + 파일 현황)

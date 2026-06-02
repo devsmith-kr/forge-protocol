@@ -129,6 +129,12 @@ forge forge         # API 계약 (contracts.yml) + Claude 프롬프트
 forge temper        # Given-When-Then 테스트 시나리오 (도메인 키워드 기반)
 forge inspect       # 멀티 관점 검수
 
+# --ai 플래그를 붙이면 Claude API가 프롬프트를 자동 처리합니다
+forge shape --ai    # 아키텍처 설계 → AI 응답 자동 저장
+forge forge --ai    # 코드 생성 → AI 응답 자동 저장
+forge temper --ai   # 테스트 코드 → AI 응답 자동 저장
+forge inspect --ai  # 상세 리뷰 → AI 응답 자동 저장
+
 # 실제 코드 파일 생성 (Spring Boot 스켈레톤 + JUnit5)
 forge emit --target all --build gradle              # 단일 모듈 (auto: 작은 프로젝트)
 forge emit --layout multi-module                    # 도메인별 Gradle 모듈 분리
@@ -158,6 +164,41 @@ forge verify                              # .forge/verify-report.json 기록
 1. Gradle 의존성 미선언 — 다른 도메인 패키지 import 시 컴파일 실패
 2. ArchUnit `*ArchitectureTest.java` — 컴파일된 클래스 분석으로 경계 위반 탐지
 3. `forge verify` 리포트 — ArchUnit 위반은 `boundary_violations` 로 분류
+
+### Claude API 연동 (`--ai` 모드)
+
+Phase 2~5에서 생성된 프롬프트를 **Claude API로 자동 전송**하여, 수동 복사·붙여넣기 없이 AI 응답을 받을 수 있습니다.
+
+#### 1. API 키 발급
+
+1. [console.anthropic.com](https://console.anthropic.com) 에서 계정 생성
+2. 좌측 메뉴 **API Keys** → **Create Key** → `sk-ant-api03-...` 형태의 키 복사
+
+#### 2. API 키 설정 (택 1)
+
+```bash
+# 방법 A: 환경변수 (권장)
+export ANTHROPIC_API_KEY=sk-ant-api03-...       # macOS/Linux
+set ANTHROPIC_API_KEY=sk-ant-api03-...          # Windows
+
+# 방법 B: 프로젝트 설정 파일
+# .forge/config.yml 에 아래 내용 추가 (.gitignore 대상이므로 안전)
+api_key: sk-ant-api03-...
+```
+
+#### 3. 사용
+
+```bash
+forge shape --ai                # 아키텍처 설계 → .forge/project/architecture-ai-response.md
+forge forge --ai                # 코드 생성   → .forge/project/build-ai-response.md
+forge temper --ai               # 테스트 코드 → .forge/project/temper-ai-response.md
+forge inspect --ai              # 상세 리뷰   → .forge/project/inspect-ai-response.md
+
+# 모델 지정 (선택)
+forge shape --ai --model claude-sonnet-4-20250514
+```
+
+`--ai` 없이 실행하면 기존 방식대로 프롬프트 파일(`.md`)만 생성됩니다.
 
 ### Web UI
 
