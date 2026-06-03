@@ -76,28 +76,28 @@ program
   .command('shape')
   .description('Phase 2: 성형 — 아키텍처 결정 + AI 설계 프롬프트')
   .option('--ai', 'Claude API로 프롬프트를 자동 실행하여 AI 응답을 받습니다.')
-  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-20250514)')
+  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-6-20250603)')
   .action(wrap(runShape));
 
 program
   .command('forge')
   .description('Phase 3: 단조 — API 계약 + 코드 생성 프롬프트')
   .option('--ai', 'Claude API로 프롬프트를 자동 실행하여 AI 응답을 받습니다.')
-  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-20250514)')
+  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-6-20250603)')
   .action(wrap(runBuild));
 
 program
   .command('temper')
   .description('Phase 4: 담금질 — Given-When-Then 테스트 시나리오')
   .option('--ai', 'Claude API로 프롬프트를 자동 실행하여 AI 응답을 받습니다.')
-  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-20250514)')
+  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-6-20250603)')
   .action(wrap(runTemper));
 
 program
   .command('inspect')
   .description('Phase 5: 검수 — 보안/성능/운영/확장성 멀티 관점 리뷰')
   .option('--ai', 'Claude API로 프롬프트를 자동 실행하여 AI 응답을 받습니다.')
-  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-20250514)')
+  .option('--model <model>', 'Claude 모델 지정 (기본: claude-sonnet-4-6-20250603)')
   .action(wrap(runInspect));
 
 program

@@ -195,7 +195,7 @@ forge temper --ai               # 테스트 코드 → .forge/project/temper-ai-
 forge inspect --ai              # 상세 리뷰   → .forge/project/inspect-ai-response.md
 
 # 모델 지정 (선택)
-forge shape --ai --model claude-sonnet-4-20250514
+forge shape --ai --model claude-sonnet-4-6-20250603
 ```
 
 `--ai` 없이 실행하면 기존 방식대로 프롬프트 파일(`.md`)만 생성됩니다.
