@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { parseForgePrompt } from '../lib/core/claude-client.js';
+import { readFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { parseForgePrompt, extractCodeFiles } from '../lib/core/claude-client.js';
 
 describe('parseForgePrompt', () => {
   it('system/user 섹션이 명시된 프롬프트를 분리한다 (shape 패턴)', () => {
@@ -116,7 +119,7 @@ describe('parseForgePrompt', () => {
     expect(user).toBe('실제 사용자 메시지 본문');
   });
 
-  it('여러 --- 구분자가 user 영역에 있으면 병합된다', () => {
+  it('여러 --- 구분자가 user 영역에 있으면 병합된다 ', () => {
     const prompt = `# Header
 
 ---
@@ -145,5 +148,92 @@ describe('parseForgePrompt', () => {
     expect(user).toContain('첫 번째 섹션');
     expect(user).toContain('두 번째 섹션');
     expect(user).toContain('세 번째 섹션');
+  });
+});
+
+describe('extractCodeFiles', () => {
+  const testDir = join(tmpdir(), `forge-extract-test-${Date.now()}`);
+
+  it('파일명 힌트 + 코드 블럭에서 소스 파일을 추출한다', async () => {
+    const md = `
+# 코드 생성 결과
+
+### ProductService.java
+
+\`\`\`java
+package com.forge.product;
+
+public class ProductService {
+    public void findAll() {}
+}
+\`\`\`
+
+### ProductController.java
+
+\`\`\`java
+package com.forge.product;
+
+public class ProductController {
+    private final ProductService service;
+}
+\`\`\`
+`;
+    const dir = join(testDir, 'hint');
+    const files = await extractCodeFiles(md, dir);
+
+    expect(files.length).toBe(2);
+    const svc = await readFile(files.find((f) => f.includes('ProductService')), 'utf-8');
+    expect(svc).toContain('public class ProductService');
+    expect(files[0]).toContain(join('src', 'main', 'java', 'com', 'forge', 'product'));
+
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('파일명 힌트 없이 package+class 선언에서 추론한다', async () => {
+    const md = `
+\`\`\`java
+package com.forge.order;
+
+public class OrderService {
+    public void create() {}
+}
+\`\`\`
+
+\`\`\`java
+package com.forge.order;
+
+public class OrderServiceTest {
+    public void testCreate() {}
+}
+\`\`\`
+`;
+    const dir = join(testDir, 'infer');
+    const files = await extractCodeFiles(md, dir);
+
+    expect(files.length).toBe(2);
+    expect(files.find((f) => f.includes('OrderService.java'))).toBeTruthy();
+    const testFile = files.find((f) => f.includes('OrderServiceTest'));
+    expect(testFile).toContain(join('src', 'test', 'java'));
+
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('yml/properties 파일은 resources 하위에 저장한다', async () => {
+    const md = `
+### application.yml
+
+\`\`\`yaml
+spring:
+  datasource:
+    url: jdbc:h2:mem:test
+\`\`\`
+`;
+    const dir = join(testDir, 'resources');
+    const files = await extractCodeFiles(md, dir);
+
+    expect(files.length).toBe(1);
+    expect(files[0]).toContain(join('src', 'main', 'resources', 'application.yml'));
+
+    await rm(dir, { recursive: true, force: true });
   });
 });
