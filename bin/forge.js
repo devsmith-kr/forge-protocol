@@ -13,6 +13,7 @@ import { runAssemble } from '../lib/assemble.js';
 import { runShape } from '../lib/shape.js';
 import { runBuild } from '../lib/build.js';
 import { runTemper } from '../lib/temper.js';
+import { runConfig } from '../lib/config.js';
 import { runInspect } from '../lib/inspect.js';
 import { runEmit } from '../lib/emit.js';
 import { runVerify } from '../lib/verify.js';
@@ -48,6 +49,13 @@ program
 program.command('init').description('프로젝트 초기화 (.forge/ 디렉토리 생성)').action(wrap(initProject));
 
 program.command('status').description('현재 프로젝트 상태 대시보드').action(wrap(showStatus));
+
+program
+  .command('config')
+  .description('설정 관리 — API 키, 모델 등')
+  .option('--set-api-key <key>', 'Anthropic API 키 저장 (.forge/config.yml)')
+  .option('--set-model <model>', '기본 Claude 모델 지정')
+  .action(wrap(runConfig));
 
 program
   .command('meta-smelt')
