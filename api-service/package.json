@@ -1,0 +1,15 @@
+{
+  "name": "forge-api-service",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Forge Protocol SaaS API 서비스 (Phase A) - 서버 보유 Anthropic 키로 프록시 + 티어별 모델 + 임시 쿼터",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "stripe": "^17.0.0"
+  }
+}
