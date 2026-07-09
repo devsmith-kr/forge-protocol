@@ -12,6 +12,7 @@
     "bridge": "node server/bridge.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.1",
     "framer-motion": "^12.38.0",
     "js-yaml": "^4.1.1",
     "jszip": "^3.10.1",

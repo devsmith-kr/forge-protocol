@@ -1,8 +1,11 @@
-// ClaudeBridgePanel.jsx — Claude 연동 패널 (코드 생성 3가지 모드)
+// ClaudeBridgePanel.jsx - Claude 연동 패널 (Phase A)
 //
-// 모드 C: 프롬프트 복사 (항상 가능, prompt 사용)
-// 모드 B: Claude Code CLI 실행 (executionPrompt 우선 사용)
-// 모드 A: Claude API 호출 (executionPrompt 우선 사용)
+// 모드 2가지:
+//   - 프롬프트 복사 (항상 가능, 서버 불필요)
+//   - AI 생성 (api-service 프록시, 서버 보유 키 + 티어별 모델)
+//
+// Phase A 에서 제거됨: Claude Code CLI 버튼, API 키 인라인 입력.
+// (CLI 는 클라우드 불가, 키는 서버가 보유)
 //
 // BuildPhase, TemperPhase에서 재사용한다.
 
@@ -49,7 +52,7 @@ function ProgressBar({ progress, step }) {
 
 // ── 출력 패널 ─────────────────────────────────────────
 
-function OutputPanel({ output, status, statusMessage, error, progress, progressStep, onCancel, onReset }) {
+function OutputPanel({ output, status, statusMessage, error, progress, progressStep, usage, onCancel, onReset }) {
   const outputRef = useRef(null)
   const [outputCopied, setOutputCopied] = useState(false)
 
@@ -65,7 +68,6 @@ function OutputPanel({ output, status, statusMessage, error, progress, progressS
     setTimeout(() => setOutputCopied(false), 2000)
   }, [output])
 
-  // 출력에서 FORGE:PROGRESS 마커 제거한 버전
   const cleanOutput = useMemo(() =>
     output.replace(/\[FORGE:PROGRESS:\d+:[^\]]*\]\n?/g, ''),
     [output]
@@ -79,16 +81,14 @@ function OutputPanel({ output, status, statusMessage, error, progress, progressS
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.25 }}
     >
-      {/* 진행률 바 (생성 중일 때) */}
       {status === 'generating' && (
         <ProgressBar progress={progress} step={progressStep} />
       )}
 
-      {/* 상태 바 */}
       <div className="bridge-output-status">
         <span className="bridge-status-text">
           {status === 'generating' && <span className="bridge-spinner" />}
-          {status === 'generating' && (statusMessage || '백그라운드에서 코드 생성 중…')}
+          {status === 'generating' && (statusMessage || '백그라운드에서 코드 생성 중...')}
           {status === 'done' && `✓ 완료 (${progress}%)`}
           {status === 'error' && `✗ ${error}`}
         </span>
@@ -107,7 +107,13 @@ function OutputPanel({ output, status, statusMessage, error, progress, progressS
         </span>
       </div>
 
-      {/* 출력 영역 */}
+      {/* 토큰 사용량 (완료 시) */}
+      {status === 'done' && usage && (
+        <div className="bridge-usage">
+          입력 {usage.inputTokens?.toLocaleString()} · 출력 {usage.outputTokens?.toLocaleString()} 토큰
+        </div>
+      )}
+
       {cleanOutput && (
         <pre className="bridge-output-code" ref={outputRef}>
           <code>{cleanOutput}</code>
@@ -117,44 +123,17 @@ function OutputPanel({ output, status, statusMessage, error, progress, progressS
   )
 }
 
-// ── API 키 인라인 입력 ────────────────────────────────
-
-function ApiKeyInput({ apiKey, onChange }) {
-  return (
-    <input
-      type="password"
-      className="bridge-api-key-input"
-      placeholder="sk-ant-api03-..."
-      value={apiKey}
-      onChange={e => onChange(e.target.value)}
-      autoComplete="off"
-      spellCheck="false"
-    />
-  )
-}
-
 // ── 메인 패널 ─────────────────────────────────────────
 
 /**
- * @param {string} prompt            — 복사용 프롬프트
- * @param {string} executionPrompt   — Claude Code/API 실행용 프롬프트 (없으면 prompt 사용)
- * @param {string} copyLabel         — 복사 버튼 라벨
- * @param {string} outputDir         — 생성 결과 디렉토리 표시용
+ * @param {string} prompt            - 복사용 프롬프트
+ * @param {string} executionPrompt   - AI 실행용 프롬프트 (없으면 prompt 사용)
+ * @param {string} copyLabel         - 복사 버튼 라벨
+ * @param {string} outputDir         - 생성 결과 디렉토리 표시용
  */
 export default function ClaudeBridgePanel({ prompt, executionPrompt, copyLabel = '프롬프트 복사', outputDir }) {
   const bridge = useClaudeBridge()
   const [copied, setCopied] = useState(false)
-  const [apiKey, setApiKey] = useState(() => {
-    try { return localStorage.getItem('forge-api-key') || '' } catch { return '' }
-  })
-  const [showApiInput, setShowApiInput] = useState(false)
-
-  useEffect(() => {
-    try {
-      if (apiKey) localStorage.setItem('forge-api-key', apiKey)
-      else localStorage.removeItem('forge-api-key')
-    } catch { /* 무시 */ }
-  }, [apiKey])
 
   const isGenerating = bridge.status === 'generating'
   const showOutput = bridge.status !== 'idle'
@@ -167,15 +146,10 @@ export default function ClaudeBridgePanel({ prompt, executionPrompt, copyLabel =
     setTimeout(() => setCopied(false), 2500)
   }, [prompt])
 
-  const handleClaudeCode = useCallback(() => {
+  const handleGenerate = useCallback(() => {
     if (!runPrompt || isGenerating) return
-    bridge.generate(runPrompt, 'claude-code')
+    bridge.generate(runPrompt)
   }, [runPrompt, isGenerating, bridge.generate])
-
-  const handleClaudeApi = useCallback(() => {
-    if (!runPrompt || isGenerating || !apiKey.trim()) return
-    bridge.generate(runPrompt, 'api', { apiKey: apiKey.trim() })
-  }, [runPrompt, isGenerating, apiKey, bridge.generate])
 
   return (
     <div className="bridge-panel">
@@ -195,58 +169,26 @@ export default function ClaudeBridgePanel({ prompt, executionPrompt, copyLabel =
         </button>
 
         <button
-          className="bridge-btn bridge-btn-claude-code"
-          onClick={handleClaudeCode}
-          disabled={!bridge.connected || !bridge.claudeAvailable || !runPrompt || isGenerating}
-          title={
-            !bridge.connected ? 'Bridge 서버 미연결 (npm run bridge)'
-            : !bridge.claudeAvailable ? 'Claude Code CLI 미설치'
-            : undefined
-          }
+          className="bridge-btn bridge-btn-claude-api"
+          onClick={handleGenerate}
+          disabled={!bridge.connected || !runPrompt || isGenerating}
+          title={!bridge.connected ? 'API 서비스 미연결' : undefined}
         >
-          {isGenerating && bridge.mode === 'claude-code' ? '⏳ 생성 중…' : '🖥️ Claude Code 실행'}
+          {isGenerating ? '⏳ 생성 중...' : '✨ AI로 생성'}
         </button>
-
-        <div className="bridge-api-group">
-          <button
-            className="bridge-btn bridge-btn-claude-api"
-            onClick={apiKey.trim() ? handleClaudeApi : () => setShowApiInput(v => !v)}
-            disabled={!bridge.connected || isGenerating || (showApiInput && !apiKey.trim())}
-            title={!bridge.connected ? 'Bridge 서버 미연결 (npm run bridge)' : undefined}
-          >
-            {isGenerating && bridge.mode === 'api' ? '⏳ 호출 중…' : '🔑 Claude API'}
-          </button>
-          <AnimatePresence>
-            {showApiInput && !isGenerating && (
-              <motion.div
-                className="bridge-api-input-wrapper"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ApiKeyInput apiKey={apiKey} onChange={setApiKey} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       </div>
 
       {/* 연결 상태 + 출력 디렉토리 힌트 */}
       {!bridge.connected && (
         <div className="bridge-hint">
-          Bridge 서버 미연결 — <code>npm run bridge</code>로 실행하세요
+          API 서비스 미연결 - <code>cd api-service &amp;&amp; npm run dev</code> 로 실행하세요
         </div>
       )}
-      {bridge.connected && bridge.claudeAvailable && (
+      {bridge.connected && (
         <div className="bridge-hint connected">
-          Bridge 연결됨 · Claude {bridge.claudeVersion}
+          연결됨 · 티어 <strong>{bridge.tier}</strong>
+          {bridge.model && <> · 모델 <code>{bridge.model}</code></>}
           {outputDir && <> · 출력: <code>{outputDir}</code></>}
-        </div>
-      )}
-      {bridge.connected && !bridge.claudeAvailable && (
-        <div className="bridge-hint partial">
-          Bridge 연결됨 · Claude CLI 미설치 (API만 사용 가능)
         </div>
       )}
 
@@ -260,6 +202,7 @@ export default function ClaudeBridgePanel({ prompt, executionPrompt, copyLabel =
             error={bridge.error}
             progress={bridge.progress}
             progressStep={bridge.progressStep}
+            usage={bridge.usage}
             onCancel={bridge.cancel}
             onReset={bridge.reset}
           />
