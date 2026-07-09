@@ -1,15 +1,28 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BUILTIN_CATALOG } from './catalog'
 import { PHASES } from './constants'
-import { loadSession, saveSession, clearSession } from './hooks/usePersistedState'
+import {
+  loadSession,
+  saveSession,
+  clearSession,
+  toStatePayload,
+  fromStatePayload,
+} from './hooks/usePersistedState'
 import { ProjectProvider, useProject } from './context/ProjectContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { useProjects } from './hooks/useProjects'
+import { useAccount } from './hooks/useAccount'
 import { I18nProvider, useT } from './i18n'
 import AnimatedNumber from './components/AnimatedNumber'
 import ErrorBoundary from './components/ErrorBoundary'
 import PhaseBar from './components/PhaseBar'
 import OnboardingModal from './components/OnboardingModal'
+import ProjectMenu from './components/ProjectMenu'
+import AccountBar from './components/AccountBar'
+import AuthModal from './components/AuthModal'
 import './components/OnboardingModal.css'
+import './components/ProjectMenu.css'
 import GuidePanel from './GuidePanel'
 import MetaSmeltPhase from './phases/MetaSmeltPhase'
 import SmeltPhase from './phases/SmeltPhase'
@@ -22,9 +35,25 @@ const CATALOGS = { commerce: BUILTIN_CATALOG }
 const saved = loadSession(BUILTIN_CATALOG, CATALOGS)
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <I18nProvider>
+        <AppInner />
+      </I18nProvider>
+    </AuthProvider>
+  )
+}
+
+function AppInner() {
+  const auth = useAuth()
+  const projectsApi = useProjects(auth.user?.id)
+  const { saveProjectState, loadProject, createProject, deleteProject, projects } = projectsApi
+  const { account, refresh: refreshAccount, startCheckout, openPortal } = useAccount(auth.user?.id)
+
   const [phase, setPhase]             = useState(saved?.phase       ?? 'meta-smelt')
   const [maxUnlocked, setMaxUnlocked] = useState(saved?.maxUnlocked ?? 0)
   const [showGuide, setShowGuide]     = useState(false)
+  const [showAuth, setShowAuth]       = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(
     () => !localStorage.getItem('forge-onboarding-done')
   )
@@ -32,12 +61,65 @@ export default function App() {
   const [metaResult, setMetaResult]   = useState(saved?.metaResult   ?? null)
   const [selectedIds, setSelectedIds] = useState(saved?.selectedIds  ?? new Set())
 
-  // 상태 변경 시 localStorage에 저장
+  // Supabase 프로젝트 동기화 상태
+  const [currentProjectId, setCurrentProjectId] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+  const skipSaveRef = useRef(false)  // 프로젝트 로드/생성 직후의 불필요한 재저장 방지
+  const saveTimerRef = useRef(null)
+
+  // localStorage 캐시 저장 (로그인 여부 무관, 오프라인 캐시)
   useEffect(() => {
     saveSession({ phase, maxUnlocked, selectedIds, metaResult, activeCatalog })
   }, [phase, maxUnlocked, selectedIds, metaResult, activeCatalog])
 
+  // 로그인 + 프로젝트 선택 시 상태 변경을 Supabase에 디바운스 저장
+  useEffect(() => {
+    if (!auth.user || !currentProjectId) return
+    if (skipSaveRef.current) {
+      skipSaveRef.current = false
+      return
+    }
+    const payload = toStatePayload({ phase, maxUnlocked, selectedIds, metaResult, activeCatalog })
+    setSyncing(true)
+    clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await saveProjectState(currentProjectId, payload)
+      } catch {
+        /* 네트워크 실패 - localStorage 캐시는 유지됨 */
+      } finally {
+        setSyncing(false)
+      }
+    }, 800)
+    return () => clearTimeout(saveTimerRef.current)
+  }, [phase, maxUnlocked, selectedIds, metaResult, activeCatalog, currentProjectId, auth.user, saveProjectState])
+
+  // 로그아웃 시 프로젝트 선택 해제
+  useEffect(() => {
+    if (!auth.user) setCurrentProjectId(null)
+  }, [auth.user])
+
+  // 결제 후 리다이렉트(?billing=success) 처리: 계정 새로고침 + URL 정리
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('billing')) {
+      refreshAccount()
+      params.delete('billing')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
+    }
+  }, [refreshAccount])
+
   const phaseIdx = PHASES.findIndex(p => p.id === phase)
+
+  const applyState = useCallback((s) => {
+    if (!s) return
+    setPhase(s.phase)
+    setMaxUnlocked(s.maxUnlocked)
+    setActiveCatalog(s.activeCatalog)
+    setMetaResult(s.metaResult)
+    setSelectedIds(s.selectedIds)
+  }, [])
 
   const goNext = useCallback(() => {
     const nextIdx = phaseIdx + 1
@@ -73,36 +155,98 @@ export default function App() {
     setSelectedIds(new Set())
   }, [])
 
+  // ── 프로젝트 액션 ──────────────────────────────────
+  const handleSelectProject = useCallback(async (id) => {
+    try {
+      const proj = await loadProject(id)
+      const s = fromStatePayload(proj.state, BUILTIN_CATALOG, CATALOGS)
+      skipSaveRef.current = true
+      applyState(s ?? {
+        phase: 'meta-smelt', maxUnlocked: 0,
+        activeCatalog: BUILTIN_CATALOG, metaResult: null, selectedIds: new Set(),
+      })
+      setCurrentProjectId(id)
+    } catch {
+      /* 로드 실패 무시 */
+    }
+  }, [loadProject, applyState])
+
+  const handleNewProject = useCallback(async (name) => {
+    try {
+      const payload = toStatePayload({ phase, maxUnlocked, selectedIds, metaResult, activeCatalog })
+      const proj = await createProject(name, payload)
+      skipSaveRef.current = true
+      setCurrentProjectId(proj.id)
+    } catch {
+      /* 생성 실패 무시 */
+    }
+  }, [phase, maxUnlocked, selectedIds, metaResult, activeCatalog, createProject])
+
+  const handleDeleteProject = useCallback(async (id) => {
+    try {
+      await deleteProject(id)
+      if (id === currentProjectId) setCurrentProjectId(null)
+    } catch {
+      /* 삭제 실패 무시 */
+    }
+  }, [deleteProject, currentProjectId])
+
+  const handleSignOut = useCallback(async () => {
+    await auth.signOut()
+  }, [auth])
+
+  const projectMenu = (
+    <ProjectMenu
+      enabled={auth.enabled}
+      user={auth.user}
+      projects={projects}
+      currentProjectId={currentProjectId}
+      onSelect={handleSelectProject}
+      onNew={handleNewProject}
+      onDelete={handleDeleteProject}
+      onSignIn={() => setShowAuth(true)}
+      onSignOut={handleSignOut}
+      syncing={syncing}
+    />
+  )
+
+  const accountBar =
+    auth.enabled && auth.user ? (
+      <AccountBar account={account} onUpgrade={startCheckout} onManage={openPortal} />
+    ) : null
+
   return (
-    <I18nProvider>
-      <ProjectProvider
-        activeCatalog={activeCatalog}
-        metaResult={metaResult}
-        selectedIds={selectedIds}
-        setSelectedIds={setSelectedIds}
-      >
-        <AppShell
-          phase={phase}
-          handlePhaseChange={handlePhaseChange}
-          maxUnlocked={maxUnlocked}
-          showGuide={showGuide}
-          setShowGuide={setShowGuide}
-          showOnboarding={showOnboarding}
-          setShowOnboarding={setShowOnboarding}
-          handleReset={handleReset}
-          handleMetaComplete={handleMetaComplete}
-          goNext={goNext}
-          goPrev={goPrev}
-        />
-      </ProjectProvider>
-    </I18nProvider>
+    <ProjectProvider
+      activeCatalog={activeCatalog}
+      metaResult={metaResult}
+      selectedIds={selectedIds}
+      setSelectedIds={setSelectedIds}
+    >
+      <AppShell
+        phase={phase}
+        handlePhaseChange={handlePhaseChange}
+        maxUnlocked={maxUnlocked}
+        showGuide={showGuide}
+        setShowGuide={setShowGuide}
+        showOnboarding={showOnboarding}
+        setShowOnboarding={setShowOnboarding}
+        showAuth={showAuth}
+        setShowAuth={setShowAuth}
+        handleReset={handleReset}
+        handleMetaComplete={handleMetaComplete}
+        goNext={goNext}
+        goPrev={goPrev}
+        projectMenu={projectMenu}
+        accountBar={accountBar}
+      />
+    </ProjectProvider>
   )
 }
 
 function AppShell({
   phase, handlePhaseChange, maxUnlocked, showGuide, setShowGuide,
-  showOnboarding, setShowOnboarding, handleReset, handleMetaComplete,
-  goNext, goPrev,
+  showOnboarding, setShowOnboarding, showAuth, setShowAuth,
+  handleReset, handleMetaComplete, goNext, goPrev, projectMenu, accountBar,
 }) {
   const { t } = useT()
   return (
@@ -116,6 +260,8 @@ function AppShell({
           <PhaseBar current={phase} onChange={handlePhaseChange} maxUnlocked={maxUnlocked} />
           <div className="header-meta">
             <HeaderStats />
+            {accountBar}
+            {projectMenu}
             {maxUnlocked > 0 && (
               <motion.button
                 className="reset-btn"
@@ -174,6 +320,10 @@ function AppShell({
           {showOnboarding && (
             <OnboardingModal onClose={() => setShowOnboarding(false)} />
           )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
         </AnimatePresence>
       </div>
   )

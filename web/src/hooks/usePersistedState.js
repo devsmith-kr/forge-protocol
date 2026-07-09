@@ -33,9 +33,13 @@ function isQuotaError(err) {
   )
 }
 
-function serialize(state) {
+/**
+ * 앱 상태를 저장용 순수 객체(payload)로 변환한다.
+ * localStorage(JSON.stringify)와 Supabase(JSONB) 양쪽에서 재사용한다.
+ */
+export function toStatePayload(state) {
   const isBuiltin = BUILTIN_DOMAINS.includes(state.activeCatalog?.domain)
-  return JSON.stringify({
+  return {
     phase: state.phase,
     maxUnlocked: state.maxUnlocked,
     selectedIds: [...state.selectedIds],
@@ -50,30 +54,15 @@ function serialize(state) {
       blocks:  !isBuiltin ? state.activeCatalog.blocks  : undefined,
       deps:    !isBuiltin ? state.activeCatalog.deps    : undefined,
     } : null,
-  })
+  }
 }
 
-export function loadSession(BUILTIN_CATALOG, CATALOGS = {}) {
-  let raw
-  try {
-    raw = localStorage.getItem(STORAGE_KEY)
-  } catch (err) {
-    // localStorage 자체가 비활성화(프라이빗 모드 등)
-    broadcastError('read-failed', { error: err?.message })
-    return null
-  }
-  if (!raw) return null
-
-  let data
-  try {
-    data = JSON.parse(raw)
-  } catch (err) {
-    // 저장된 JSON이 깨진 경우 — 삭제 후 새로 시작
-    broadcastError('corrupt', { error: err?.message })
-    try { localStorage.removeItem(STORAGE_KEY) } catch { /* 무시 */ }
-    return null
-  }
-
+/**
+ * 저장 payload를 앱 상태로 복원한다. localStorage/Supabase 공통.
+ * 복원 실패 시 null 반환.
+ */
+export function fromStatePayload(data, BUILTIN_CATALOG, CATALOGS = {}) {
+  if (!data) return null
   try {
     let activeCatalog = BUILTIN_CATALOG
     if (data.activeCatalogMeta) {
@@ -108,9 +97,33 @@ export function loadSession(BUILTIN_CATALOG, CATALOGS = {}) {
   }
 }
 
+export function loadSession(BUILTIN_CATALOG, CATALOGS = {}) {
+  let raw
+  try {
+    raw = localStorage.getItem(STORAGE_KEY)
+  } catch (err) {
+    // localStorage 자체가 비활성화(프라이빗 모드 등)
+    broadcastError('read-failed', { error: err?.message })
+    return null
+  }
+  if (!raw) return null
+
+  let data
+  try {
+    data = JSON.parse(raw)
+  } catch (err) {
+    // 저장된 JSON이 깨진 경우 - 삭제 후 새로 시작
+    broadcastError('corrupt', { error: err?.message })
+    try { localStorage.removeItem(STORAGE_KEY) } catch { /* 무시 */ }
+    return null
+  }
+
+  return fromStatePayload(data, BUILTIN_CATALOG, CATALOGS)
+}
+
 export function saveSession(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, serialize(state))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStatePayload(state)))
   } catch (err) {
     if (isQuotaError(err)) {
       broadcastError('quota-exceeded', { error: err?.message })
